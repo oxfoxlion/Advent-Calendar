@@ -58,7 +58,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           <h1 className="text-4xl font-extrabold drop-shadow-md mb-2 text-white">
             {profile.recipientName}
           </h1>
-          <p className="text-sm font-medium mb-6 text-white/80 drop-shadow-sm">2024 Advent Calendar</p>
+          <p className="text-sm font-medium mb-6 text-white/80 drop-shadow-sm">2025 聖誕倒數日曆</p>
           
           <div className="flex justify-center gap-3">
             <ShareButton slug={slug} />

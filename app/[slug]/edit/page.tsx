@@ -34,7 +34,7 @@ export default async function EditPage({ params }: { params: Promise<{ slug: str
             <h1 className="text-2xl font-bold text-slate-800">🔧 管理員登入</h1>
             <p className="text-slate-500 text-sm mt-2">{profile.recipientName}</p>
           </div>
-          <input name="password" type="password" placeholder="輸入編輯密碼" className="w-full p-3 bg-white/60 rounded-xl border border-white/60 text-slate-800 text-center focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner" />
+          <input name="password" type="password" placeholder="輸入管理員密碼" className="w-full p-3 bg-white/60 rounded-xl border border-white/60 text-slate-800 text-center focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner" />
           <button className="w-full bg-slate-800 hover:bg-slate-700 text-white p-3 rounded-xl font-bold transition shadow-lg">登入</button>
           <div className="text-center mt-4">
             <Link href={`/${slug}`} className="text-sm text-slate-500 hover:text-slate-800">← 先去預覽頁看看</Link>

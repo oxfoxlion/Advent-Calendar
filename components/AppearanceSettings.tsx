@@ -1,30 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { updateCalendarSettings } from '@/app/actions';
 import { useRouter } from 'next/navigation';
-import { Check, Loader2, Palette, Sparkles } from 'lucide-react';
-
-// 定義可用圖樣
-const PATTERNS = [
-  { id: '', label: '無' },
-  { id: '🎄', label: '聖誕樹' },
-  { id: '🎁', label: '禮物' },
-  { id: '❄️', label: '雪花' },
-  { id: '☃️', label: '雪人' },
-  { id: '🌸', label: '花朵' },
-  { id: '✨', label: '閃亮' },
-  { id: '🐱', label: '貓咪' },
-];
+import { Check, Loader2, Palette, Sparkles, X as XIcon, SmilePlus } from 'lucide-react';
+import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 
 type Props = {
   slug: string;
   profile: { recipientName: string };
-  // 接收父層狀態
   bgStart: string; setBgStart: (v: string) => void;
   bgEnd: string; setBgEnd: (v: string) => void;
   cardColor: string; setCardColor: (v: string) => void;
-  pattern: string; setPattern: (v: string) => void; // 新增
+  pattern: string; setPattern: (v: string) => void;
 };
 
 export default function AppearanceSettings({ 
@@ -32,18 +20,30 @@ export default function AppearanceSettings({
   bgStart, setBgStart, 
   bgEnd, setBgEnd, 
   cardColor, setCardColor,
-  pattern, setPattern // 新增
+  pattern, setPattern 
 }: Props) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [name, setName] = useState(profile.recipientName);
+  
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSubmit = async (formData: FormData) => {
     setIsPending(true);
     setIsSuccess(false);
     
-    // 儲存格式： custom-bg:色1,色2,圖樣
     formData.set('background', `custom-bg:${bgStart},${bgEnd},${pattern}`);
     formData.set('cardStyle', `custom-card:${cardColor}`);
     formData.set('themeColor', 'custom');
@@ -74,14 +74,12 @@ export default function AppearanceSettings({
           </label>
           <div className="relative h-12 w-full rounded-full border border-slate-200 shadow-inner flex items-center px-1 bg-white">
             <div className="absolute inset-1 rounded-full opacity-80" style={{ background: `linear-gradient(to right, ${bgStart}, ${bgEnd})` }} />
-            {/* 左端選擇器 */}
             <div className="absolute left-1 top-1/2 -translate-y-1/2 group cursor-pointer z-20">
               <input type="color" value={bgStart} onChange={(e) => setBgStart(e.target.value)} className="absolute inset-0 w-8 h-8 opacity-0 cursor-pointer z-20" />
               <div className="w-8 h-8 bg-white rounded-full shadow-md border border-slate-100 flex items-center justify-center transform group-hover:scale-110 transition">
                 <div className="w-6 h-6 rounded-full border border-black/5" style={{ backgroundColor: bgStart }} />
               </div>
             </div>
-            {/* 右端選擇器 */}
             <div className="absolute right-1 top-1/2 -translate-y-1/2 group cursor-pointer z-20">
               <input type="color" value={bgEnd} onChange={(e) => setBgEnd(e.target.value)} className="absolute inset-0 w-8 h-8 opacity-0 cursor-pointer z-20" />
               <div className="w-8 h-8 bg-white rounded-full shadow-md border border-slate-100 flex items-center justify-center transform group-hover:scale-110 transition">
@@ -91,29 +89,54 @@ export default function AppearanceSettings({
           </div>
         </div>
 
-        {/* 2. 背景圖樣 (新增) */}
-        <div>
+        {/* 2. 背景圖樣 (改回懸浮 Emoji Picker) */}
+        <div className="relative" ref={pickerRef}>
           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1">
             <Sparkles className="w-3 h-3" /> 裝飾圖樣
           </label>
-          <div className="flex flex-wrap gap-2">
-            {PATTERNS.map((p) => (
+          
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-indigo-300 px-4 py-2.5 rounded-xl transition shadow-sm w-full text-left group"
+            >
+              <span className="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg text-xl group-hover:scale-110 transition-transform">
+                {pattern || <SmilePlus className="w-5 h-5 text-slate-400" />}
+              </span>
+              <span className="flex-1 text-sm text-slate-600 font-medium">
+                {pattern ? '點擊更換圖樣' : '選擇一個裝飾 Emoji...'}
+              </span>
+            </button>
+
+            {pattern && (
               <button
-                key={p.id}
                 type="button"
-                onClick={() => setPattern(p.id)}
-                className={`
-                  w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all border
-                  ${pattern === p.id 
-                    ? 'bg-indigo-50 border-indigo-500 scale-110 shadow-md' 
-                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:bg-slate-50'}
-                `}
-                title={p.label}
+                onClick={() => setPattern('')}
+                className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition border border-transparent hover:border-rose-200"
+                title="清除圖樣"
               >
-                {p.id || <span className="text-xs text-slate-400">無</span>}
+                <XIcon className="w-5 h-5" />
               </button>
-            ))}
+            )}
           </div>
+
+          {/* 修改這裡：改回 absolute 懸浮定位，並固定寬度為 320px (小尺寸) */}
+          {showEmojiPicker && (
+            <div className="absolute top-full left-0 mt-2 z-50 shadow-2xl rounded-2xl border border-white/20 animate-in fade-in zoom-in-95 duration-200 origin-top-left">
+              <EmojiPicker 
+                onEmojiClick={(e) => {
+                  setPattern(e.emoji);
+                  setShowEmojiPicker(false);
+                }}
+                emojiStyle={EmojiStyle.NATIVE}
+                width={320} // 固定寬度，小巧精緻
+                height={350} // 高度適中
+                searchPlaceHolder="搜尋表情符號..."
+                previewConfig={{ showPreview: false }}
+              />
+            </div>
+          )}
         </div>
 
         {/* 3. 卡片顏色 (保持不變) */}
