@@ -63,8 +63,10 @@ export async function createCalendar(formData: FormData) {
   const adminCode = formData.get('adminCode') as string;
   const accessCode = formData.get('accessCode') as string || null;
   const themeColor = formData.get('themeColor') as string;
-  const background = formData.get('background') as string || 'snow';
-  const cardStyle = formData.get('cardStyle') as string || 'vibrant';
+  
+  // 修改這裡：預設值改為新版格式 (經典紅綠)
+  const background = formData.get('background') as string || 'custom-bg:#450a0a,#14532d';
+  const cardStyle = formData.get('cardStyle') as string || 'custom-card:#7f1d1d';
 
   // 1. 建立主檔
   const { data: calendar, error } = await supabase
@@ -83,7 +85,6 @@ export async function createCalendar(formData: FormData) {
 
   if (error || !calendar) {
     console.error('Error creating calendar:', error);
-    // 這裡可以做更細緻的錯誤處理，例如回傳 slug 重複的錯誤
     return;
   }
 

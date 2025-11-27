@@ -2,10 +2,12 @@ export type CalendarProfile = {
   id: string;
   slug: string;
   recipientName: string;
-  themeColor: string; // 雖然我們現在主要用 style，但保留此欄位以防萬一
+  themeColor: string;
   hasPassword: boolean;
-  background: string; // 背景風格 (classic, winter, cozy, sugar)
-  cardStyle: string;  // 卡片風格 (classic, winter, cozy, sugar)
+  // 背景風格：支援舊版代號 (classic) 或新版格式 (custom-bg:color1,color2)
+  background: string; 
+  // 卡片風格：支援舊版代號 (classic) 或新版格式 (custom-card:color)
+  cardStyle: string;  
 };
 
 export type DayContent = {
