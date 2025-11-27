@@ -5,10 +5,16 @@ import { CalendarProfile, DayContent } from './types';
 export async function getCalendarProfile(slug: string): Promise<CalendarProfile | null> {
   const { data } = await supabase.from('calendars').select('*').eq('slug', slug).single();
   if (!data) return null;
+  
   return {
-    id: data.id, slug: data.slug,
-    recipientName: data.recipient_name, themeColor: data.theme_color,
+    id: data.id,
+    slug: data.slug,
+    recipientName: data.recipient_name,
+    themeColor: data.theme_color,
     hasPassword: !!data.access_code,
+    // 如果資料庫是空的，給個預設值 classic
+    background: data.background || 'classic',
+    cardStyle: data.card_style || 'classic',
   };
 }
 
