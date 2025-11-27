@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Home, ExternalLink } from 'lucide-react';
 import AppearanceSettings from '@/components/AppearanceSettings';
 import DayEditor from '@/components/DayEditor';
-import BackgroundDecoration from '@/components/BackgroundDecoration'; // 引入
+import BackgroundDecoration from '@/components/BackgroundDecoration';
 import { CalendarProfile, DayContent } from '@/lib/sdk/types';
 
 const THEME_DEFAULTS: Record<string, [string, string]> = {
@@ -29,23 +29,32 @@ type Props = {
 };
 
 export default function EditPageClient({ profile, days, slug }: Props) {
-  // 解析背景字串: custom-bg:色1,色2,圖樣
+  // 解析背景字串: custom-bg:色1,色2,圖樣,數量,大小,角度,動畫
   const initBgString = profile.background.startsWith('custom-bg:')
     ? profile.background.replace('custom-bg:', '')
     : (THEME_DEFAULTS[profile.background]?.join(',') || THEME_DEFAULTS.classic.join(','));
   
-  const bgParts = initBgString.split(',');
-  const initBgStart = bgParts[0];
-  const initBgEnd = bgParts[1] || bgParts[0];
-  const initPattern = bgParts[2] || ''; // 解析圖樣
+  const parts = initBgString.split(',');
+  const initBgStart = parts[0];
+  const initBgEnd = parts[1] || parts[0];
+  const initPattern = parts[2] || ''; 
+  const initQuantity = parts[3] ? parseInt(parts[3]) : 20;
+  const initSize = parts[4] ? parseFloat(parts[4]) : 1;
+  const initRotation = parts[5] ? parseInt(parts[5]) : 45;
+  const initAnimation = parts[6] || 'float';
 
   const initCard = profile.cardStyle.startsWith('custom-card:')
     ? profile.cardStyle.replace('custom-card:', '')
     : CARD_DEFAULTS[profile.cardStyle] || CARD_DEFAULTS.classic;
 
+  // 狀態管理
   const [bgStart, setBgStart] = useState(initBgStart);
   const [bgEnd, setBgEnd] = useState(initBgEnd);
-  const [pattern, setPattern] = useState(initPattern); // 圖樣狀態
+  const [pattern, setPattern] = useState(initPattern);
+  const [quantity, setQuantity] = useState(initQuantity);
+  const [size, setSize] = useState(initSize);
+  const [rotation, setRotation] = useState(initRotation);
+  const [animation, setAnimation] = useState(initAnimation);
   const [cardColor, setCardColor] = useState(initCard);
 
   return (
@@ -53,8 +62,14 @@ export default function EditPageClient({ profile, days, slug }: Props) {
       className="min-h-screen p-6 pb-32 transition-colors duration-300 relative"
       style={{ background: `linear-gradient(135deg, ${bgStart}, ${bgEnd})` }}
     >
-      {/* 背景裝飾 */}
-      <BackgroundDecoration pattern={pattern} />
+      {/* 傳遞所有參數給背景裝飾 (即時預覽) */}
+      <BackgroundDecoration 
+        pattern={pattern} 
+        quantity={quantity} 
+        size={size} 
+        rotation={rotation} 
+        animation={animation as any}
+      />
 
       {/* 內容層 (z-10 確保在裝飾之上) */}
       <div className="relative z-10">
@@ -76,15 +91,21 @@ export default function EditPageClient({ profile, days, slug }: Props) {
 
         <div className="max-w-5xl mx-auto space-y-8">
           
+          {/* 外觀設定區塊 (傳遞所有 setter) */}
           <AppearanceSettings 
             slug={slug} 
             profile={profile}
             bgStart={bgStart} setBgStart={setBgStart}
             bgEnd={bgEnd} setBgEnd={setBgEnd}
             cardColor={cardColor} setCardColor={setCardColor}
-            pattern={pattern} setPattern={setPattern} // 傳遞圖樣狀態
+            pattern={pattern} setPattern={setPattern}
+            quantity={quantity} setQuantity={setQuantity}
+            size={size} setSize={setSize}
+            rotation={rotation} setRotation={setRotation}
+            animation={animation} setAnimation={setAnimation}
           />
 
+          {/* 每日內容 (保持不變) */}
           <section>
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800 drop-shadow-sm">
               📅 每日內容 (25天)

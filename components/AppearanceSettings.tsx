@@ -3,16 +3,22 @@
 import { useState, useRef, useEffect } from 'react';
 import { updateCalendarSettings } from '@/app/actions';
 import { useRouter } from 'next/navigation';
-import { Check, Loader2, Palette, Sparkles, X as XIcon, SmilePlus } from 'lucide-react';
+import { Check, Loader2, Palette, Sparkles, X as XIcon, SmilePlus, Settings2 } from 'lucide-react';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 
 type Props = {
   slug: string;
   profile: { recipientName: string };
+  // 顏色
   bgStart: string; setBgStart: (v: string) => void;
   bgEnd: string; setBgEnd: (v: string) => void;
   cardColor: string; setCardColor: (v: string) => void;
+  // 圖樣設定
   pattern: string; setPattern: (v: string) => void;
+  quantity: number; setQuantity: (v: number) => void;
+  size: number; setSize: (v: number) => void;
+  rotation: number; setRotation: (v: number) => void;
+  animation: string; setAnimation: (v: string) => void;
 };
 
 export default function AppearanceSettings({ 
@@ -20,7 +26,11 @@ export default function AppearanceSettings({
   bgStart, setBgStart, 
   bgEnd, setBgEnd, 
   cardColor, setCardColor,
-  pattern, setPattern 
+  pattern, setPattern,
+  quantity, setQuantity,
+  size, setSize,
+  rotation, setRotation,
+  animation, setAnimation
 }: Props) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
@@ -44,7 +54,10 @@ export default function AppearanceSettings({
     setIsPending(true);
     setIsSuccess(false);
     
-    formData.set('background', `custom-bg:${bgStart},${bgEnd},${pattern}`);
+    // 儲存格式擴充: custom-bg:色1,色2,圖樣,數量,大小,角度,動畫
+    const bgConfig = `custom-bg:${bgStart},${bgEnd},${pattern},${quantity},${size},${rotation},${animation}`;
+    
+    formData.set('background', bgConfig);
     formData.set('cardStyle', `custom-card:${cardColor}`);
     formData.set('themeColor', 'custom');
 
@@ -89,61 +102,121 @@ export default function AppearanceSettings({
           </div>
         </div>
 
-        {/* 2. 背景圖樣 (改回懸浮 Emoji Picker) */}
-        <div className="relative" ref={pickerRef}>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1">
-            <Sparkles className="w-3 h-3" /> 裝飾圖樣
+        {/* 2. 背景圖樣與進階設定 */}
+        <div className="space-y-4">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+            <Sparkles className="w-3 h-3" /> 裝飾圖樣與特效
           </label>
           
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-indigo-300 px-4 py-2.5 rounded-xl transition shadow-sm w-full text-left group"
-            >
-              <span className="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg text-xl group-hover:scale-110 transition-transform">
-                {pattern || <SmilePlus className="w-5 h-5 text-slate-400" />}
-              </span>
-              <span className="flex-1 text-sm text-slate-600 font-medium">
-                {pattern ? '點擊更換圖樣' : '選擇一個裝飾 Emoji...'}
-              </span>
-            </button>
-
-            {pattern && (
+          {/* Emoji Picker 觸發區 */}
+          <div className="relative" ref={pickerRef}>
+            <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => setPattern('')}
-                className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition border border-transparent hover:border-rose-200"
-                title="清除圖樣"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-indigo-300 px-4 py-2.5 rounded-xl transition shadow-sm w-full text-left group"
               >
-                <XIcon className="w-5 h-5" />
+                <span className="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg text-xl group-hover:scale-110 transition-transform">
+                  {pattern || <SmilePlus className="w-5 h-5 text-slate-400" />}
+                </span>
+                <span className="flex-1 text-sm text-slate-600 font-medium">
+                  {pattern ? '點擊更換圖樣' : '選擇一個裝飾 Emoji...'}
+                </span>
               </button>
+              {pattern && (
+                <button type="button" onClick={() => setPattern('')} className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition border border-transparent hover:border-rose-200">
+                  <XIcon className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+            
+            {/* 懸浮式 Picker (編輯頁面維持懸浮，節省空間) */}
+            {showEmojiPicker && (
+              <div className="absolute top-full left-0 mt-2 z-50 shadow-2xl rounded-2xl border border-white/20 animate-in fade-in zoom-in-95 duration-200 origin-top-left">
+                <EmojiPicker 
+                  onEmojiClick={(e) => { setPattern(e.emoji); setShowEmojiPicker(false); }}
+                  emojiStyle={EmojiStyle.NATIVE} width={320} height={350} searchPlaceHolder="搜尋..." previewConfig={{ showPreview: false }}
+                />
+              </div>
             )}
           </div>
 
-          {/* 修改這裡：改回 absolute 懸浮定位，並固定寬度為 320px (小尺寸) */}
-          {showEmojiPicker && (
-            <div className="absolute top-full left-0 mt-2 z-50 shadow-2xl rounded-2xl border border-white/20 animate-in fade-in zoom-in-95 duration-200 origin-top-left">
-              <EmojiPicker 
-                onEmojiClick={(e) => {
-                  setPattern(e.emoji);
-                  setShowEmojiPicker(false);
-                }}
-                emojiStyle={EmojiStyle.NATIVE}
-                width={320} // 固定寬度，小巧精緻
-                height={350} // 高度適中
-                searchPlaceHolder="搜尋表情符號..."
-                previewConfig={{ showPreview: false }}
-              />
+          {/* 進階滑桿設定 (只有選了圖樣才顯示) */}
+          {pattern && (
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4 animate-in fade-in slide-in-from-top-2">
+              
+              {/* 數量滑桿 */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-bold text-slate-500">
+                  <span>數量 (Quantity)</span>
+                  <span>{quantity}</span>
+                </div>
+                <input 
+                  type="range" min="0" max="50" step="1" 
+                  value={quantity} onChange={(e) => setQuantity(Number(e.target.value))}
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                />
+              </div>
+
+              {/* 大小滑桿 */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-bold text-slate-500">
+                  <span>大小 (Size)</span>
+                  <span>{size}x</span>
+                </div>
+                <input 
+                  type="range" min="0.5" max="3" step="0.1" 
+                  value={size} onChange={(e) => setSize(Number(e.target.value))}
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                />
+              </div>
+
+              {/* 角度滑桿 */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-bold text-slate-500">
+                  <span>旋轉角度 (Rotation)</span>
+                  <span>±{rotation}°</span>
+                </div>
+                <input 
+                  type="range" min="0" max="180" step="5" 
+                  value={rotation} onChange={(e) => setRotation(Number(e.target.value))}
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                />
+              </div>
+
+              {/* 動畫選擇 */}
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-slate-500 block">動畫效果</span>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { id: 'none', label: '🚫 無' },
+                    { id: 'float', label: '☁️ 漂浮' },
+                    { id: 'twinkle', label: '✨ 閃爍' },
+                    { id: 'fall', label: '❄️ 掉落' }
+                  ].map((anim) => (
+                    <button
+                      key={anim.id}
+                      type="button"
+                      onClick={() => setAnimation(anim.id)}
+                      className={`
+                        py-2 px-1 rounded-lg text-xs font-bold transition border
+                        ${animation === anim.id 
+                          ? 'bg-indigo-100 text-indigo-700 border-indigo-300' 
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}
+                      `}
+                    >
+                      {anim.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
 
         {/* 3. 卡片顏色 (保持不變) */}
         <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 block">
-            卡片主色
-          </label>
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 block">卡片主色</label>
           <div className="relative h-12 w-full rounded-xl border border-slate-200 shadow-inner flex items-center px-1 bg-white overflow-hidden group">
             <div className="absolute inset-1 rounded-lg opacity-100 transition-colors duration-300 border border-black/5" style={{ backgroundColor: cardColor }} />
             <div className="absolute inset-0 flex items-center justify-center">
@@ -159,25 +232,10 @@ export default function AppearanceSettings({
         {/* 標題 */}
         <div>
           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">標題名稱</label>
-          <input 
-            name="recipientName" 
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition shadow-sm" 
-          />
+          <input name="recipientName" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition shadow-sm" />
         </div>
         
-        <button 
-          disabled={isPending || isSuccess}
-          className={`
-            w-full py-3 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2
-            shadow-lg active:scale-[0.98]
-            ${isSuccess 
-              ? 'bg-emerald-600 text-white shadow-emerald-500/30' 
-              : 'bg-slate-800 hover:bg-slate-700 text-white shadow-slate-500/30'}
-            ${isPending ? 'opacity-80 cursor-wait' : ''}
-          `}
-        >
+        <button disabled={isPending || isSuccess} className={`w-full py-3 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] ${isSuccess ? 'bg-emerald-600 text-white shadow-emerald-500/30' : 'bg-slate-800 hover:bg-slate-700 text-white shadow-slate-500/30'} ${isPending ? 'opacity-80 cursor-wait' : ''}`}>
           {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
           {isSuccess && <Check className="w-4 h-4" />}
           {isSuccess ? '已儲存設定！' : (isPending ? '儲存中...' : '儲存外觀設定')}

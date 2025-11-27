@@ -3,10 +3,11 @@ import { getCalendarProfile, getSafeCalendarDays } from '@/lib/sdk/server';
 import AdventGrid from '@/components/AdventGrid';
 import LockScreen from '@/components/LockScreen';
 import ShareButton from '@/components/ShareButton';
-import BackgroundDecoration from '@/components/BackgroundDecoration'; // 引入
+import BackgroundDecoration from '@/components/BackgroundDecoration';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 
+// 舊版代碼相容對照表
 const THEME_DEFAULTS: Record<string, string> = {
   classic: 'custom-bg:#450a0a,#14532d',
   winter: 'custom-bg:#0f172a,#1e293b',
@@ -15,15 +16,25 @@ const THEME_DEFAULTS: Record<string, string> = {
 };
 
 function getBackgroundStyle(bgString: string) {
+  // 1. 處理舊版代號 (如 'classic') 轉為新版格式
   const normalizedBg = bgString.startsWith('custom-bg:') 
     ? bgString 
     : (THEME_DEFAULTS[bgString] || THEME_DEFAULTS.classic);
 
+  // 2. 解析字串：custom-bg:色1,色2,圖樣,數量,大小,角度,動畫
   const parts = normalizedBg.replace('custom-bg:', '').split(',');
   
   return {
+    // 背景漸層
     background: `linear-gradient(to bottom right, ${parts[0]}, ${parts[1] || parts[0]})`,
-    pattern: parts[2] || '', // 解析圖樣
+    
+    // ★ 修正重點：解析所有裝飾參數
+    pattern: parts[2] || '',
+    quantity: parts[3] ? parseInt(parts[3]) : 20,
+    size: parts[4] ? parseFloat(parts[4]) : 1,
+    rotation: parts[5] ? parseInt(parts[5]) : 45,
+    animation: parts[6] || 'float',
+    
     color: '#ffffff'
   };
 }
@@ -43,6 +54,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   }
 
   const days = await getSafeCalendarDays(profile.id);
+  
+  // 解析樣式設定
   const themeStyle = getBackgroundStyle(profile.background);
 
   return (
@@ -50,15 +63,21 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       className="min-h-screen p-6 transition-colors duration-500 relative"
       style={{ background: themeStyle.background }}
     >
-      {/* 背景裝飾 */}
-      <BackgroundDecoration pattern={themeStyle.pattern} />
+      {/* ★ 修正重點：將解析出的所有參數傳給裝飾組件 */}
+      <BackgroundDecoration 
+        pattern={themeStyle.pattern} 
+        quantity={themeStyle.quantity}
+        size={themeStyle.size}
+        rotation={themeStyle.rotation}
+        animation={themeStyle.animation as any}
+      />
 
       <div className="max-w-4xl mx-auto relative z-10">
         <header className="text-center mb-10 mt-8 relative">
           <h1 className="text-4xl font-extrabold drop-shadow-md mb-2 text-white">
             {profile.recipientName}
           </h1>
-          <p className="text-sm font-medium mb-6 text-white/80 drop-shadow-sm">2025 聖誕倒數日曆</p>
+          <p className="text-sm font-medium mb-6 text-white/80 drop-shadow-sm">2025 Advent Calendar</p>
           
           <div className="flex justify-center gap-3">
             <ShareButton slug={slug} />
