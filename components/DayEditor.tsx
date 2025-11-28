@@ -44,7 +44,7 @@ export default function DayEditor({ slug, day, initialData }: Props) {
     (initialData?.type === 'video' ? 'youtube' : (initialData?.type || 'text')) as any
   );
   
-  const parsedData = parseJsonContent(initialData?.content);
+const parsedData = parseJsonContent(initialData?.content ?? null);
 
   // --- 狀態管理 ---
   // 1. 文字類內容
