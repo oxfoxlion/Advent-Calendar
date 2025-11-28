@@ -25,31 +25,20 @@ export async function verifyAdmin(slug: string, password: string) {
   return { success: false };
 }
 
-/**
- * 3. 建立新的降臨曆
- */
 export async function createCalendar(formData: FormData) {
   const rawSlug = formData.get('slug') as string;
   const slug = rawSlug.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
 
-  if (!slug) {
-    // ★ 修改：指定錯誤欄位為 'slug'
-    return { success: false, message: '網址格式不正確', field: 'slug' };
-  }
+  if (!slug) return { success: false, message: '網址格式不正確', field: 'slug' };
 
   const { data: existing } = await supabase.from('calendars').select('slug').eq('slug', slug).single();
-
-  if (existing) {
-    // ★ 修改：指定錯誤欄位為 'slug'
-    return { success: false, message: '這個網址已經有人使用了，請換一個試試！', field: 'slug' };
-  }
+  if (existing) return { success: false, message: '這個網址已經有人使用了，請換一個試試！', field: 'slug' };
 
   const recipientName = formData.get('recipientName') as string;
   const adminCode = formData.get('adminCode') as string;
   const accessCode = formData.get('accessCode') as string || null;
   
   if (accessCode && accessCode === adminCode) {
-    // ★ 修改：指定錯誤欄位為 'accessCode' (訪客密碼)
     return { success: false, message: '為了安全起見，訪客密碼不能與管理員密碼相同！', field: 'accessCode' };
   }
 
@@ -70,8 +59,13 @@ export async function createCalendar(formData: FormData) {
     return { success: false, message: '建立失敗，請稍後再試', field: 'root' };
   }
 
+  // ★ 修改：初始 title 設為 null，讓前端自動顯示 Day X
   const days = Array.from({ length: 25 }, (_, i) => ({
-    calendar_id: calendar.id, day_number: i + 1, content_type: 'text', title: `Day ${i + 1}`, content: '還沒有內容喔！'
+    calendar_id: calendar.id, 
+    day_number: i + 1, 
+    content_type: 'text', 
+    title: null, // 原本是 `Day ${i + 1}`
+    content: '還沒有內容喔！'
   }));
 
   const { error: daysError } = await supabase.from('calendar_days').insert(days);
@@ -95,7 +89,7 @@ export async function updateDay(slug: string, day: number, formData: FormData) {
   const { data: cal } = await supabase.from('calendars').select('id').eq('slug', slug).single();
   if (!cal) return { success: false, message: 'Calendar not found' };
   const { error } = await supabase.from('calendar_days').update({ 
-      title: formData.get('title') as string, 
+      title: formData.get('title') as string, // 如果前端傳空字串，這裡會存入空字串或null
       content: formData.get('content') as string, 
       content_type: formData.get('type') as string 
     }).match({ calendar_id: cal.id, day_number: day });

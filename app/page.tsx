@@ -3,7 +3,7 @@
 import { createCalendar } from './actions';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Edit, X, Palette, Sparkles, SmilePlus } from 'lucide-react';
+import { Loader2, Edit, X, ArrowRight, Palette, Sparkles, SmilePlus } from 'lucide-react';
 import BackgroundDecoration from '@/components/BackgroundDecoration';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 
@@ -21,13 +21,11 @@ export default function Home() {
   const [animation, setAnimation] = useState('float');
 
   // 2. 表單與互動狀態
-  const [isPending, setIsPending] = useState(false);
+  const [isPending, setIsPending] = useState(false); // 控制按鈕 Loading
   const [showEditModal, setShowEditModal] = useState(false);
   const [editSlug, setEditSlug] = useState('');
   
   const [slugInput, setSlugInput] = useState('');
-  
-  // 錯誤訊息狀態
   const [slugError, setSlugError] = useState('');
   const [accessError, setAccessError] = useState('');
 
@@ -52,27 +50,34 @@ export default function Home() {
     setSlugInput(val);
   };
 
-  const handleSubmit = async (formData: FormData) => {
-    // 1. 馬上設定 Loading 狀態並清除舊錯誤
+  // ★ 修改：改為 Form Event Handler
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // 1. 阻止預設提交，奪回控制權
+    
+    // 2. 馬上設定 Loading (React 會在此時觸發渲染)
     setIsPending(true);
     setSlugError('');
     setAccessError('');
 
-    // ★ 關鍵修改：強制等待 1.5 秒，確保使用者能看到 Loading 動畫
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // 3. 手動建立 FormData
+    const formData = new FormData(e.currentTarget);
 
+    // 4. 補上我們 State 中的客製化欄位
     const bgConfig = `custom-bg:${bgStart},${bgEnd},${pattern},${quantity},${size},${rotation},${animation}`;
     formData.set('background', bgConfig);
     formData.set('cardStyle', `custom-card:${cardColor}`);
     formData.set('themeColor', 'custom'); 
     formData.set('slug', slugInput); 
 
-    // 2. 呼叫後端
+    // ★ 強制等待，讓使用者看得到轉圈圈 (體驗優化)
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // 5. 呼叫 Server Action
     const res = await createCalendar(formData);
     
-    // 3. 處理結果
+    // 6. 處理結果
     if (res && !res.success) {
-      // 失敗：解除鎖定 (這裡會讓按鈕變回「開始製作」)，並顯示錯誤
+      // 失敗：解除鎖定，顯示錯誤
       setIsPending(false);
 
       if (res.field === 'slug') {
@@ -88,7 +93,7 @@ export default function Home() {
         slugRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
-    // 成功：不需要 setIsPending(false)，因為頁面即將跳轉，保持 Loading 狀態體驗較好
+    // 成功：保持 isPending 為 true，直到頁面跳轉
   };
 
   const handleGoToEdit = (e: React.FormEvent) => {
@@ -119,7 +124,8 @@ export default function Home() {
           <p className="mt-3 text-slate-600 font-medium">為重要的人準備 25 天的驚喜</p>
         </div>
 
-        <form action={handleSubmit} className="mt-8 space-y-6 bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-white/50 shadow-2xl relative z-20">
+        {/* ★ 修改：使用 onSubmit */}
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6 bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-white/50 shadow-2xl relative z-20">
           <div className="space-y-6">
             
             <div className="grid grid-cols-1 gap-4">
@@ -179,7 +185,7 @@ export default function Home() {
 
             <hr className="border-slate-200/60 my-2"/>
 
-            {/* 1. 背景漸層 */}
+            {/* 背景與圖樣設定 */}
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">1. 設定背景氛圍</label>
               <div className="relative h-12 w-full rounded-full border border-slate-200 shadow-inner flex items-center px-1 bg-white">
@@ -199,54 +205,24 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 2. 圖樣選擇器 */}
             <div className="relative" ref={pickerRef}>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
                 <Sparkles className="w-3 h-3" /> 2. 選擇裝飾圖樣
               </label>
-              
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-indigo-300 px-4 py-2.5 rounded-xl transition shadow-sm w-full text-left group"
-                >
-                  <span className="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg text-xl group-hover:scale-110 transition-transform">
-                    {pattern || <SmilePlus className="w-5 h-5 text-slate-400" />}
-                  </span>
-                  <span className="flex-1 text-sm text-slate-600 font-medium">
-                    {pattern ? '點擊更換圖樣' : '選擇一個裝飾 Emoji...'}
-                  </span>
+                <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-indigo-300 px-4 py-2.5 rounded-xl transition shadow-sm w-full text-left group">
+                  <span className="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg text-xl group-hover:scale-110 transition-transform">{pattern || <SmilePlus className="w-5 h-5 text-slate-400" />}</span>
+                  <span className="flex-1 text-sm text-slate-600 font-medium">{pattern ? '點擊更換圖樣' : '選擇一個裝飾 Emoji...'}</span>
                 </button>
-
                 {pattern && (
-                  <button
-                    type="button"
-                    onClick={() => setPattern('')}
-                    className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition border border-transparent hover:border-rose-200"
-                    title="清除圖樣"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <button type="button" onClick={() => setPattern('')} className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition border border-transparent hover:border-rose-200" title="清除圖樣"><X className="w-5 h-5" /></button>
                 )}
               </div>
-
               {showEmojiPicker && (
                 <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-200 w-full max-w-[340px]">
-                  <EmojiPicker 
-                    onEmojiClick={(e) => {
-                      setPattern(e.emoji);
-                      setShowEmojiPicker(false);
-                    }}
-                    emojiStyle={EmojiStyle.NATIVE}
-                    width="100%"
-                    height={350}
-                    searchPlaceHolder="搜尋表情符號..."
-                    previewConfig={{ showPreview: false }}
-                  />
+                  <EmojiPicker onEmojiClick={(e) => { setPattern(e.emoji); setShowEmojiPicker(false); }} emojiStyle={EmojiStyle.NATIVE} width="100%" height={350} searchPlaceHolder="搜尋表情符號..." previewConfig={{ showPreview: false }} />
                 </div>
               )}
-
               {pattern && (
                 <div className="mt-4 bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4 animate-in fade-in slide-in-from-top-2">
                   <div className="space-y-1"><div className="flex justify-between text-xs font-bold text-slate-500"><span>數量 (Quantity)</span><span>{quantity}</span></div><input type="range" min="0" max="50" step="1" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500" /></div>
@@ -261,7 +237,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* 3. 卡片顏色選擇器 */}
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">3. 設定卡片主色</label>
               <div className="relative h-12 w-full rounded-xl border border-slate-200 shadow-inner flex items-center px-1 bg-white overflow-hidden group">
@@ -276,10 +251,9 @@ export default function Home() {
 
           <button 
             type="submit" 
-            disabled={isPending || !slugInput}
-            className={`w-full flex justify-center items-center gap-2 py-4 px-4 border border-transparent rounded-xl shadow-lg shadow-indigo-500/30 text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 focus:outline-none transform transition active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed ${!isPending ? 'hover:scale-[1.01]' : ''}`}
+            disabled={isPending || !slugInput} 
+            className="w-full flex justify-center items-center gap-2 py-4 px-4 border border-transparent rounded-xl shadow-lg shadow-indigo-500/30 text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 focus:outline-none transform transition hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {/* ★ 這裡會根據 isPending 狀態改變文字與圖示 */}
             {isPending ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin"/>
@@ -289,9 +263,7 @@ export default function Home() {
           </button>
         </form>
         
-        <p className="text-center text-xs text-slate-500 mix-blend-multiply relative z-10">
-          Made with ❤️ for Christmas 2024
-        </p>
+        <p className="text-center text-xs text-slate-500 mix-blend-multiply relative z-10">Instantcheese Shao 2025</p>
       </div>
 
       {showEditModal && (
