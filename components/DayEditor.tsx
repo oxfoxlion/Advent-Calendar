@@ -11,16 +11,17 @@ type Props = {
   initialData?: DayContent;
 };
 
-// 預設素材
+// 預設素材 (已更新為您指定的網址)
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1512389142860-9c449e58a543";
 const DEFAULT_VIDEO = "https://www.youtube.com/watch?v=aAkMkVFwAoo";
-const DEFAULT_SPOTIFY = "https://open.spotify.com/track/0bYg9bo50gSsH3LtXe2SQn";
+const DEFAULT_SPOTIFY = "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT"; // 建議換成有效的 Spotify 連結
 const DEFAULT_MAP = "台北101";
 const DEFAULT_SCRATCH_TEXT = "恭喜獲得：按摩券一張！";
 const DEFAULT_TYPEWRITER = "親愛的，\n這是一封給你的信...";
 const DEFAULT_TEXT = "還沒有內容喔！";
 
-function parseJsonContent(content: string | null) {
+// 解析內容的 helper function
+function parseJsonContent(content: string | null | undefined) {
   if (!content) return { url: '', description: '', text: '', location: '', isImage: false };
   try {
     const data = JSON.parse(content);
@@ -29,9 +30,13 @@ function parseJsonContent(content: string | null) {
       description: data.description || '',
       text: data.text || '',
       location: data.location || '',
-      isImage: data.isImage || false // ★ 新增：解析刮刮樂類型
+      isImage: data.isImage || false
     };
   } catch (e) {
+    // ★ 關鍵修正：如果是預設文字，視為沒有網址，這樣切換類型時才會自動填入預設圖/影片
+    if (content === DEFAULT_TEXT) {
+      return { url: '', description: '', text: content, location: '', isImage: false };
+    }
     return { url: content, description: '', text: content, location: '', isImage: false };
   }
 }
@@ -44,7 +49,8 @@ export default function DayEditor({ slug, day, initialData }: Props) {
     (initialData?.type === 'video' ? 'youtube' : (initialData?.type || 'text')) as any
   );
   
-const parsedData = parseJsonContent(initialData?.content ?? null);
+  // ★ 關鍵修正：加上 ?? null 解決 build error
+  const parsedData = parseJsonContent(initialData?.content ?? null);
 
   // --- 狀態管理 ---
   // 1. 文字類內容
@@ -59,7 +65,7 @@ const parsedData = parseJsonContent(initialData?.content ?? null);
   // 3. 地圖
   const [location, setLocation] = useState(parsedData.location);
 
-  // 4. ★ 新增：刮刮樂模式 (文字/圖片)
+  // 4. 刮刮樂模式 (文字/圖片)
   const [scratchMode, setScratchMode] = useState<'text' | 'image'>(parsedData.isImage ? 'image' : 'text');
 
   // 5. 測驗
@@ -71,28 +77,34 @@ const parsedData = parseJsonContent(initialData?.content ?? null);
   const [quizOptions, setQuizOptions] = useState<string[]>(initialQuiz.options);
   const [correctAnswer, setCorrectAnswer] = useState(initialQuiz.answer);
 
-  // 切換類型預設值
+  // 切換類型並預填預設值
   const handleTypeChange = (newType: string) => {
     setContentType(newType as any);
+    
+    // 如果目前網址是空的 (parseJsonContent 修正後會是空)，就填入預設值
     if (newType === 'image' && !mediaUrl) setMediaUrl(DEFAULT_IMAGE);
     else if (newType === 'youtube' && !mediaUrl) setMediaUrl(DEFAULT_VIDEO);
     else if (newType === 'spotify' && !mediaUrl) setMediaUrl(DEFAULT_SPOTIFY);
     else if (newType === 'map' && !location) setLocation(DEFAULT_MAP);
-    else if (newType === 'scratch' && scratchMode === 'text' && !textContent) setTextContent(DEFAULT_SCRATCH_TEXT);
+    else if (newType === 'scratch') {
+        if (scratchMode === 'text' && !textContent) setTextContent(DEFAULT_SCRATCH_TEXT);
+        // ★ 確保切換到刮刮樂且是圖片模式時，也會預填圖片
+        if (scratchMode === 'image' && !mediaUrl) setMediaUrl(DEFAULT_IMAGE);
+    }
     else if (newType === 'typewriter' && !textContent) setTextContent(DEFAULT_TYPEWRITER);
     else if (newType === 'text' && !textContent) setTextContent(DEFAULT_TEXT);
   };
 
-  // ★ 新增：切換刮刮樂模式
+  // 切換刮刮樂模式
   const handleScratchModeChange = (mode: 'text' | 'image') => {
     setScratchMode(mode);
+    // ★ 確保切換模式時預填對應內容
     if (mode === 'image' && !mediaUrl) setMediaUrl(DEFAULT_IMAGE);
     if (mode === 'text' && !textContent) setTextContent(DEFAULT_SCRATCH_TEXT);
   };
 
   // 偵測與警告
   const isGoogleLink = mediaUrl?.includes('drive.google.com') || mediaUrl?.includes('photos.app.goo.gl');
-  // 刮刮樂如果是圖片模式，也要檢查 HTTPS
   const hasNoHttps = (contentType === 'image' || contentType === 'youtube' || contentType === 'spotify' || (contentType === 'scratch' && scratchMode === 'image')) &&
                      mediaUrl?.length > 0 && !mediaUrl.trim().startsWith('https://');
 
@@ -115,7 +127,6 @@ const parsedData = parseJsonContent(initialData?.content ?? null);
     } else if (contentType === 'map') {
       finalContent = JSON.stringify({ location: location, description: mediaDesc });
     } else if (contentType === 'scratch') {
-      // ★ 刮刮樂打包邏輯
       finalContent = JSON.stringify({ 
         isImage: scratchMode === 'image',
         text: scratchMode === 'text' ? textContent : '',
@@ -167,7 +178,6 @@ const parsedData = parseJsonContent(initialData?.content ?? null);
         
         <div className="flex-1 overflow-y-auto pr-1">
           {contentType === 'quiz' ? (
-            // 測驗 UI (保持不變)
             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
               <div className="space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">問題內容</label><textarea value={quizQuestion} onChange={(e) => setQuizQuestion(e.target.value)} placeholder="例如：我們第一次約會是在哪裡？" className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-3 text-sm h-20 focus:border-indigo-500 outline-none resize-none"/></div>
               <div className="space-y-2">
@@ -182,7 +192,6 @@ const parsedData = parseJsonContent(initialData?.content ?? null);
               </div>
             </div>
           ) : contentType === 'scratch' ? (
-            // ★ 修改：刮刮樂 UI (加入切換按鈕)
             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
               <div className="flex bg-slate-100 p-1 rounded-lg">
                 <button type="button" onClick={() => handleScratchModeChange('text')} className={`flex-1 text-xs font-bold py-1.5 rounded-md transition ${scratchMode === 'text' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>文字模式</button>
@@ -190,7 +199,6 @@ const parsedData = parseJsonContent(initialData?.content ?? null);
               </div>
 
               {scratchMode === 'image' ? (
-                // 圖片輸入框 (復用 mediaUrl 邏輯)
                 <div className="space-y-1">
                   <div className="relative">
                     <input name="mediaUrl" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://example.com/secret-gift.jpg" className={`w-full bg-white border text-slate-800 rounded-xl p-2.5 pl-9 text-sm placeholder:text-slate-400 focus:ring-1 outline-none transition-all shadow-sm font-mono text-xs ${(isGoogleLink || hasNoHttps) ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-500 bg-amber-50' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500'}`} />
@@ -202,18 +210,16 @@ const parsedData = parseJsonContent(initialData?.content ?? null);
                   </div>
                 </div>
               ) : (
-                // 文字輸入框
                 <div className="space-y-1">
                   <textarea name="content" value={textContent} onChange={(e) => setTextContent(e.target.value)} placeholder="輸入要隱藏的文字..." className="w-full bg-white border border-slate-200 text-slate-800 rounded-xl p-3 text-sm h-32 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none transition-all shadow-sm" />
                 </div>
               )}
             </div>
           ) : ['image', 'youtube', 'spotify'].includes(contentType) ? (
-            // 媒體類型 (保持不變)
             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
               <div className="space-y-1">
                 <div className="relative">
-                  <input name="mediaUrl" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder={contentType === 'image' ? "https://example.com/image.jpg" : contentType === 'youtube' ? "https://www.youtube.com/watch?v=..." : "http://googleusercontent.com/spotify.com/7..."} className={`w-full bg-white border text-slate-800 rounded-xl p-2.5 pl-9 text-sm placeholder:text-slate-400 focus:ring-1 outline-none transition-all shadow-sm font-mono text-xs ${(isGoogleLink || hasNoHttps) ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-500 bg-amber-50' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500'}`} />
+                  <input name="mediaUrl" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder={contentType === 'image' ? "https://example.com/image.jpg" : contentType === 'youtube' ? "https://www.youtube.com/watch?v=..." : "open.spotify.com/album..."} className={`w-full bg-white border text-slate-800 rounded-xl p-2.5 pl-9 text-sm placeholder:text-slate-400 focus:ring-1 outline-none transition-all shadow-sm font-mono text-xs ${(isGoogleLink || hasNoHttps) ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-500 bg-amber-50' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500'}`} />
                   <LinkIcon className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${(isGoogleLink || hasNoHttps) ? 'text-amber-500' : 'text-slate-400'}`} />
                 </div>
                 <div className="text-[10px] text-slate-500 px-1 flex flex-col gap-0.5">
@@ -230,7 +236,6 @@ const parsedData = parseJsonContent(initialData?.content ?? null);
               </div>
             </div>
           ) : contentType === 'map' ? (
-            // 地圖類型 (保持不變)
             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">輸入地點</label>
@@ -239,7 +244,6 @@ const parsedData = parseJsonContent(initialData?.content ?? null);
               <div className="space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">描述文字 (選填)</label><textarea value={mediaDesc} onChange={(e) => setMediaDesc(e.target.value)} placeholder="例如：禮物就藏在這裡..." className="w-full bg-white border border-slate-200 text-slate-800 rounded-xl p-3 text-sm h-20 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none transition-all shadow-sm"/></div>
             </div>
           ) : (
-            // 純文字/打字機 (保持不變)
             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 h-full flex flex-col">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{contentType === 'typewriter' ? '信件內容' : '訊息內容'}</label>
               <textarea name="content" value={textContent} onChange={(e) => setTextContent(e.target.value)} placeholder="在這裡輸入..." className="w-full bg-white border border-slate-200 text-slate-800 rounded-xl p-3 text-sm h-32 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none transition-all shadow-sm" />
