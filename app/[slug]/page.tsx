@@ -116,7 +116,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             {/* 新增：導航回首頁的按鈕 (放在最左側) */}
             <Link href="/" className={buttonStyle} title="製作我的專屬日曆">
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>我也要做一個</span>
+              <span>製作我的專屬日曆</span>
             </Link>
             
             <ShareButton slug={slug} />
