@@ -51,7 +51,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const profile = await getCalendarProfile(slug);
 
   if (!profile) {
-    notFound(); // 👈 直接呼叫 notFound()，而不是回傳 Metadata
+    return {
+        title: '找不到日曆 | 2025 聖誕倒數',
+      };
   }
 
   return {
