@@ -1,7 +1,7 @@
 'use client';
 import { DayContent } from '@/lib/sdk/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Star, Play, X, Youtube } from 'lucide-react';
+import { Lock, Star, Play, X } from 'lucide-react'; // Youtube icon 未被使用可移除
 import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 
@@ -23,10 +23,11 @@ function getYouTubeId(url: string | null) {
   return (match && match[2].length === 11) ? match[2] : null;
 }
 
-export default function AdventGrid({ days, slug, cardStyle }: { 
+export default function AdventGrid({ days, slug, cardStyle, isAdmin = false }: { 
   days: DayContent[], 
   slug: string, 
-  cardStyle: string 
+  cardStyle: string,
+  isAdmin?: boolean 
 }) {
   const [opened, setOpened] = useState<number[]>([]);
   // 用來控制 Modal 顯示的狀態，存的是要播放的 YouTube ID
@@ -38,7 +39,22 @@ export default function AdventGrid({ days, slug, cardStyle }: {
   }, [slug]);
 
   const handleOpen = (day: DayContent) => {
-    if (day.isLocked || opened.includes(day.day)) return;
+    // 1. 如果是被鎖住的卡片 (時間未到且非管理員)，直接略過
+    if (day.isLocked) return;
+
+    // 2. 檢查這張卡片是否已經開啟
+    if (opened.includes(day.day)) {
+      // ★ 關鍵修改：如果是管理員，允許「關閉」(翻轉回去)
+      if (isAdmin) {
+        const newOpened = opened.filter(d => d !== day.day);
+        setOpened(newOpened);
+        localStorage.setItem(`advent-${slug}`, JSON.stringify(newOpened));
+      }
+      // 一般使用者點擊已開啟的卡片不做任何事 (return)
+      return;
+    }
+
+    // 3. 尚未開啟 -> 執行開啟
     const newOpened = [...opened, day.day];
     setOpened(newOpened);
     localStorage.setItem(`advent-${slug}`, JSON.stringify(newOpened));

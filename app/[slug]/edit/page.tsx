@@ -62,8 +62,7 @@ export default async function EditPage({ params }: { params: Promise<{ slug: str
   }
 
   // 已登入：顯示編輯介面
-  const days = await getSafeCalendarDays(profile.id);
+  const days = await getSafeCalendarDays(profile.id, true);
 
-  // 這裡會把資料交給 EditPageClient，由它來渲染背景裝飾、外觀設定面板、和每日編輯框
   return <EditPageClient profile={profile} days={days} slug={slug} />;
 }

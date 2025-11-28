@@ -18,7 +18,7 @@ export async function getCalendarProfile(slug: string): Promise<CalendarProfile 
   };
 }
 
-export async function getSafeCalendarDays(calendarId: string): Promise<DayContent[]> {
+export async function getSafeCalendarDays(calendarId: string, isAdmin: boolean = false): Promise<DayContent[]> {
   const { data: rawDays } = await supabase
     .from('calendar_days')
     .select('*')
@@ -31,15 +31,20 @@ export async function getSafeCalendarDays(calendarId: string): Promise<DayConten
   return Array.from({ length: 25 }, (_, i) => {
     const dayNum = i + 1;
     const dayData = daysMap.get(dayNum);
-    const unlockable = isDayUnlockable(dayNum);
+    
+    // 原始的時間檢查
+    const timeUnlockable = isDayUnlockable(dayNum);
+    
+    // ★ 關鍵修改：如果是管理員 (isAdmin) 或是時間到了 (timeUnlockable)，都視為「可解鎖」
+    const isAccessible = isAdmin || timeUnlockable;
 
-    if (unlockable && dayData) {
+    if (isAccessible && dayData) {
       return {
         day: dayNum,
         type: dayData.content_type as any,
         title: dayData.title,
         content: dayData.content,
-        isLocked: false,
+        isLocked: false, // 因為可存取，所以不鎖住
       };
     }
     

@@ -3,6 +3,7 @@ import { getCalendarProfile, getSafeCalendarDays } from '@/lib/sdk/server';
 import AdventGrid from '@/components/AdventGrid';
 import LockScreen from '@/components/LockScreen';
 import ShareButton from '@/components/ShareButton';
+import LogoutButton from '@/components/LogoutButton'; // ★ 新增 import
 import BackgroundDecoration from '@/components/BackgroundDecoration';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
@@ -28,7 +29,7 @@ function getBackgroundStyle(bgString: string) {
     // 背景漸層
     background: `linear-gradient(to bottom right, ${parts[0]}, ${parts[1] || parts[0]})`,
     
-    // ★ 修正重點：解析所有裝飾參數
+    // 解析所有裝飾參數
     pattern: parts[2] || '',
     quantity: parts[3] ? parseInt(parts[3]) : 20,
     size: parts[4] ? parseFloat(parts[4]) : 1,
@@ -46,16 +47,20 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   if (!profile) return notFound();
 
   const cookieStore = await cookies();
+  // 取得是否為管理員
   const isAdmin = cookieStore.get(`admin-${slug}`)?.value === 'granted';
+  // ★ 修改：將訪客權限的取得移到外層，以便判斷是否顯示登出鈕
+  const hasAccess = cookieStore.get(`access-${slug}`)?.value === 'granted';
   
+  // 檢查密碼保護 (如果是管理員則跳過檢查)
   if (profile.hasPassword && !isAdmin) {
-    const hasAccess = cookieStore.get(`access-${slug}`)?.value === 'granted';
     if (!hasAccess) return <LockScreen slug={slug} />;
   }
 
-  const days = await getSafeCalendarDays(profile.id);
-  
-  // 解析樣式設定
+  // ★ 新增：判斷是否需要顯示登出按鈕 (只要是管理員，或是已解鎖私密日曆的訪客，就顯示登出)
+  const showLogout = isAdmin || (profile.hasPassword && hasAccess);
+
+  const days = await getSafeCalendarDays(profile.id, isAdmin);
   const themeStyle = getBackgroundStyle(profile.background);
 
   return (
@@ -63,7 +68,6 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       className="min-h-screen p-6 transition-colors duration-500 relative"
       style={{ background: themeStyle.background }}
     >
-      {/* ★ 修正重點：將解析出的所有參數傳給裝飾組件 */}
       <BackgroundDecoration 
         pattern={themeStyle.pattern} 
         quantity={themeStyle.quantity}
@@ -79,8 +83,11 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           </h1>
           <p className="text-sm font-medium mb-6 text-white/80 drop-shadow-sm">2025 Advent Calendar</p>
           
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-3 flex-wrap">
             <ShareButton slug={slug} />
+            
+            {/* ★ 新增：登出按鈕 (顯示於此) */}
+            {showLogout && <LogoutButton slug={slug} />}
             
             {isAdmin ? (
               <Link 
@@ -100,7 +107,12 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           </div>
         </header>
         
-        <AdventGrid days={days} slug={slug} cardStyle={profile.cardStyle} />
+        <AdventGrid 
+          days={days} 
+          slug={slug} 
+          cardStyle={profile.cardStyle} 
+          isAdmin={isAdmin}
+        />
         
         <footer className="text-center text-xs mt-12 pb-6 opacity-60 text-white">
           Made with ❤️ for Christmas
