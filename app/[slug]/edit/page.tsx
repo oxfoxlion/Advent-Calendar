@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { Home, ArrowRight } from 'lucide-react';
 import EditPageClient from '@/components/EditPageClient'; // 關鍵：這裡要引入編輯用的 Client Component
 
+export const dynamic = 'force-dynamic';
+
 export default async function EditPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const profile = await getCalendarProfile(slug);

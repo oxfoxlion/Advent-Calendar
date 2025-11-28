@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-// ★ 修正錯誤：導入 Metadata 型別
 import type { Metadata } from 'next';
 import { getCalendarProfile, getSafeCalendarDays } from '@/lib/sdk/server';
 import AdventGrid from '@/components/AdventGrid';
@@ -11,6 +10,8 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import ReminderButton from '@/components/ReminderButton';
 import { Sparkles } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 
 // 舊版代碼相容對照表
 const THEME_DEFAULTS: Record<string, string> = {
