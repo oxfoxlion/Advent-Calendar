@@ -115,7 +115,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         />
         
         <footer className="text-center text-xs mt-12 pb-6 opacity-60 text-white">
-          Made with ❤️ for Christmas
+          InsatantCheese Shao | 2025
         </footer>
       </div>
     </main>
