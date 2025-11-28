@@ -23,7 +23,18 @@ function getYouTubeId(url: string | null) {
 }
 
 function getSpotifyEmbedUrl(url: string) {
-  return url?.replace('http://googleusercontent.com/spotify.com/13', 'http://googleusercontent.com/spotify.com/14');
+  if (!url) return '';
+
+  // 1. 如果網址已經包含 /embed/，就直接回傳
+  if (url.includes('/embed/')) return url;
+
+  // 2. 將一般網址轉換為 embed 網址
+  // 例如: open.spotify.com/track/xxx -> open.spotify.com/embed/track/xxx
+  return url
+    .replace('open.spotify.com/track', 'open.spotify.com/embed/track')
+    .replace('open.spotify.com/playlist', 'open.spotify.com/embed/playlist')
+    .replace('open.spotify.com/album', 'open.spotify.com/embed/album')
+    .replace('open.spotify.com/episode', 'open.spotify.com/embed/episode');
 }
 
 // ★ 修改：解析函式加入刮刮樂資料
@@ -36,13 +47,13 @@ function parseContent(content: string | null, type: string) {
     if (type === 'quiz') return { quiz: data, url: '', description: '', text: '', location: '', isImage: false };
     if (type === 'map') return { location: data.location, description: data.description, url: '', text: '', quiz: null, isImage: false };
     // ★ 處理刮刮樂
-    if (type === 'scratch') return { 
-      isImage: data.isImage, 
-      url: data.url || '', 
-      text: data.text || '', 
-      description: '', location: '', quiz: null 
+    if (type === 'scratch') return {
+      isImage: data.isImage,
+      url: data.url || '',
+      text: data.text || '',
+      description: '', location: '', quiz: null
     };
-    
+
     return { url: data.url, description: data.description || '', text: '', location: '', quiz: null, isImage: false };
   } catch (e) {
     return { text: content, url: '', description: '', location: '', quiz: null, isImage: false };
@@ -113,7 +124,7 @@ function ScratchCard({ data }: { data: { isImage: boolean, text: string, url: st
     // 塗上銀漆
     ctx.fillStyle = '#C0C0C0';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     // 文字
     ctx.fillStyle = '#909090';
     ctx.font = 'bold 20px sans-serif';
@@ -180,9 +191,9 @@ function TypewriterCard({ text }: { text: string }) {
     let index = 0;
     setDisplayedText('');
     const timer = setInterval(() => {
-      if (index < text.length) { setDisplayedText((prev) => prev + text.charAt(index)); index++; } 
+      if (index < text.length) { setDisplayedText((prev) => prev + text.charAt(index)); index++; }
       else { clearInterval(timer); }
-    }, 100); 
+    }, 100);
     return () => clearInterval(timer);
   }, [text]);
 
@@ -195,12 +206,12 @@ function TypewriterCard({ text }: { text: string }) {
 
 type ActiveMedia = { type: string, data: any } | null;
 
-export default function AdventGrid({ days, slug, cardStyle, isAdmin = false }: { 
-  days: DayContent[], slug: string, cardStyle: string, isAdmin?: boolean 
+export default function AdventGrid({ days, slug, cardStyle, isAdmin = false }: {
+  days: DayContent[], slug: string, cardStyle: string, isAdmin?: boolean
 }) {
   const [opened, setOpened] = useState<number[]>([]);
   const [activeMedia, setActiveMedia] = useState<ActiveMedia>(null);
-  
+
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem(`advent-${slug}`) || '[]');
     setOpened(saved);
@@ -235,7 +246,7 @@ export default function AdventGrid({ days, slug, cardStyle, isAdmin = false }: {
       <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 pb-20 px-4">
         {days.map((day) => {
           const isOpened = opened.includes(day.day);
-          
+
           return (
             <div key={day.day} className="aspect-square relative perspective-1000 group" onClick={() => handleOpen(day)}>
               <motion.div
@@ -243,12 +254,12 @@ export default function AdventGrid({ days, slug, cardStyle, isAdmin = false }: {
                 animate={{ rotateY: isOpened ? 180 : 0 }}
               >
                 {/* --- 正面 --- */}
-                <div 
+                <div
                   className={clsx("absolute inset-0 backface-hidden rounded-xl flex flex-col items-center justify-center transition-all shadow-lg border border-white/10", day.isLocked ? LOCKED_STYLE : "hover:brightness-110")}
                   style={!day.isLocked ? { backgroundColor: cardColor, color: 'white' } : {}}
                 >
                   <span className="text-3xl font-bold drop-shadow-md">{day.day}</span>
-                  {day.isLocked ? <Lock className="w-4 h-4 mt-2 opacity-50"/> : <Star className="w-4 h-4 mt-2 animate-pulse opacity-80"/>}
+                  {day.isLocked ? <Lock className="w-4 h-4 mt-2 opacity-50" /> : <Star className="w-4 h-4 mt-2 animate-pulse opacity-80" />}
                 </div>
 
                 {/* --- 背面 --- */}
@@ -273,14 +284,14 @@ export default function AdventGrid({ days, slug, cardStyle, isAdmin = false }: {
                     <div className="flex flex-col items-center gap-2">
                       <Youtube className="w-8 h-8 text-red-500 drop-shadow-sm" />
                       <p className="text-xs text-slate-500 font-bold">驚喜影片</p>
-                      <button onClick={(e) => handleOpenModal(e, 'video', day.content!)} className="flex items-center gap-1 bg-red-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition"><Play className="w-3 h-3 fill-current"/>播放</button>
+                      <button onClick={(e) => handleOpenModal(e, 'video', day.content!)} className="flex items-center gap-1 bg-red-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition"><Play className="w-3 h-3 fill-current" />播放</button>
                     </div>
                   )}
                   {day.type === 'spotify' && (
                     <div className="flex flex-col items-center gap-2">
                       <Music className="w-8 h-8 text-emerald-500 drop-shadow-sm" />
                       <p className="text-xs text-slate-500 font-bold">點播歌曲</p>
-                      <button onClick={(e) => handleOpenModal(e, 'spotify', day.content!)} className="bg-emerald-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition flex items-center gap-1"><Play className="w-3 h-3 fill-current"/>聆聽</button>
+                      <button onClick={(e) => handleOpenModal(e, 'spotify', day.content!)} className="bg-emerald-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition flex items-center gap-1"><Play className="w-3 h-3 fill-current" />聆聽</button>
                     </div>
                   )}
                   {day.type === 'map' && (
@@ -323,7 +334,7 @@ export default function AdventGrid({ days, slug, cardStyle, isAdmin = false }: {
               <button onClick={() => setActiveMedia(null)} className={`absolute z-50 p-2 rounded-full transition ${activeMedia.type === 'quiz' ? 'top-4 right-4 text-slate-400 hover:bg-slate-100' : '-top-12 right-0 bg-white/20 hover:bg-white/40 text-white'}`}><X className="w-6 h-6" /></button>
 
               {activeMedia.type === 'quiz' && <QuizCard data={activeMedia.data.quiz} onClose={() => setActiveMedia(null)} />}
-              
+
               {activeMedia.type === 'video' && (
                 <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative">
                   <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${getYouTubeId(activeMedia.data.url)}?autoplay=1&rel=0`} title="YouTube" allow="autoplay; encrypted-media" allowFullScreen className="absolute inset-0" />
