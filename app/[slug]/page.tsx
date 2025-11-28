@@ -52,14 +52,18 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
   if (!profile) {
     return {
-        title: '找不到日曆 | 2025 聖誕倒數',
-      };
+      title: '2025 降臨曆',
+    };
   }
 
   return {
-    title: `${profile.recipientName} 的聖誕驚喜`,
-    description: `專屬於 ${profile.recipientName} 的 25 天倒數驚喜`,
-    // ...
+    title: `${profile.recipientName} | 2025 降臨曆`,
+    description: ` ${profile.recipientName} 25 天倒數驚喜`,
+    // 您也可以在這裡設定 Open Graph (分享卡片) 的圖片
+    openGraph: {
+      title: `${profile.recipientName} | 2025 降臨曆`,
+      description: '快來看看我為你準備的 25 個禮物！',
+    },
   };
 }
 
