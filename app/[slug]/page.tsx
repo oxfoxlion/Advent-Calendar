@@ -7,6 +7,7 @@ import LogoutButton from '@/components/LogoutButton'; // ★ 新增 import
 import BackgroundDecoration from '@/components/BackgroundDecoration';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
+import ReminderButton from '@/components/ReminderButton';
 
 // 舊版代碼相容對照表
 const THEME_DEFAULTS: Record<string, string> = {
@@ -85,7 +86,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           
           <div className="flex justify-center gap-3 flex-wrap">
             <ShareButton slug={slug} />
-            
+            <ReminderButton title={profile.recipientName} />
             {/* ★ 新增：登出按鈕 (顯示於此) */}
             {showLogout && <LogoutButton slug={slug} />}
             
