@@ -7,7 +7,8 @@ export default function LogoutButton({ slug }: { slug: string }) {
   return (
     <button 
       onClick={() => logout(slug)}
-      className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-sm transition-all border border-white/20 backdrop-blur-sm"
+      // 保留 rounded-full，改用淺色背景與深色文字
+      className="flex items-center gap-2 bg-white/50 hover:bg-white/80 text-slate-800 px-4 py-2 rounded-full text-sm font-bold transition-all border border-white/40 backdrop-blur-sm shadow-sm"
       title="登出"
     >
       <LogOut className="w-4 h-4" />

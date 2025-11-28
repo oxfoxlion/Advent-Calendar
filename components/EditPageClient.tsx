@@ -126,6 +126,11 @@ export default function EditPageClient({ profile, days, slug }: Props) {
             </div>
           </section>
         </div>
+
+        {/* ★ 新增：頁尾簽名 (顏色改為 slate-600 以配合編輯頁面的深色文字風格) */}
+        <footer className="text-center text-xs mt-12 pb-6 opacity-60 text-white">
+          InstantCheese Shao | 2025
+        </footer>
       </div>
     </div>
   );

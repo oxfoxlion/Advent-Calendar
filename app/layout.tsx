@@ -13,8 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "2025 聖誕倒數日曆 | Shao",
-  description: "2025 聖誕倒數日曆 by Shao",
+  title: {
+    default: "聖誕倒數日曆製作工具 | Shao", // 適用於首頁 (例如 / )
+    template: "%s | Shao", // 適用於其他動態頁面，會自動在頁面標題後加上 | Shao
+  },
+  // 優化描述文字，讓 SEO 更好
+  description: "為重要的人準備 25 天的驚喜，免費製作專屬的 2025 聖誕倒數日曆。",
 };
 
 export default function RootLayout({

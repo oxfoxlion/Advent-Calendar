@@ -119,7 +119,7 @@ export default function Home() {
 
         <div className="text-center">
           <h1 className="text-5xl font-extrabold text-slate-800 drop-shadow-sm tracking-tight">
-            2025 聖誕倒數日曆
+            2025 聖誕降臨曆
           </h1>
           <p className="mt-3 text-slate-600 font-medium">為重要的人準備 25 天的驚喜</p>
         </div>
@@ -263,7 +263,7 @@ export default function Home() {
           </button>
         </form>
         
-        <p className="text-center text-xs text-slate-500 mix-blend-multiply relative z-10">Instantcheese Shao 2025</p>
+        <p className="text-center text-xs mt-12 pb-6 opacity-60 text-white">InstantCheese Shao | 2025</p>
       </div>
 
       {showEditModal && (
