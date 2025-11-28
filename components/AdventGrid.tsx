@@ -187,13 +187,24 @@ function ScratchCard({ data }: { data: { isImage: boolean, text: string, url: st
 // ... (TypewriterCard, ActiveMedia 保持不變) ...
 function TypewriterCard({ text }: { text: string }) {
   const [displayedText, setDisplayedText] = useState('');
+
   useEffect(() => {
-    let index = 0;
+    // 1. 初始化
     setDisplayedText('');
+    let currentIndex = 0;
+
     const timer = setInterval(() => {
-      if (index < text.length) { setDisplayedText((prev) => prev + text.charAt(index)); index++; }
-      else { clearInterval(timer); }
+      // ★ 關鍵修改：使用 slice(0, currentIndex) 絕對定位
+      // 這樣保證顯示的內容永遠等於原始文字的前 N 個字，絕對不會漏字
+      if (currentIndex <= text.length) {
+        setDisplayedText(text.slice(0, currentIndex));
+        currentIndex++;
+      }
+      else {
+        clearInterval(timer);
+      }
     }, 100);
+
     return () => clearInterval(timer);
   }, [text]);
 
