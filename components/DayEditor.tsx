@@ -205,7 +205,7 @@ export default function DayEditor({ slug, day, initialData }: Props) {
                     <LinkIcon className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${(isGoogleLink || hasNoHttps) ? 'text-amber-500' : 'text-slate-400'}`} />
                   </div>
                   <div className="text-[10px] text-slate-500 px-1 flex flex-col gap-0.5">
-                    {isGoogleLink && <p className="text-rose-500 font-bold animate-pulse">🚫 Google 分享連結無法直接使用！</p>}
+                    {isGoogleLink && <p className="text-rose-500 font-bold animate-pulse">🚫 請在Google相簿已公開分享的圖片上按右鍵複製圖片網址，並再試一次</p>}
                     {hasNoHttps && <p className="text-amber-600 font-bold">⚠️ 網址建議以 https:// 開頭</p>}
                   </div>
                 </div>
@@ -224,7 +224,7 @@ export default function DayEditor({ slug, day, initialData }: Props) {
                 </div>
                 <div className="text-[10px] text-slate-500 px-1 flex flex-col gap-0.5">
                   {contentType === 'image' ? (
-                    <>{isGoogleLink && <p className="text-rose-500 font-bold animate-pulse">🚫 Google 分享連結無法直接使用！</p>}{hasNoHttps && <p className="text-amber-600 font-bold">⚠️ 網址建議以 https:// 開頭</p>}</>
+                    <>{isGoogleLink && <p className="text-rose-500 font-bold animate-pulse">🚫 請在Google相簿已公開分享的圖片上按右鍵複製圖片網址，並再試一次</p>}{hasNoHttps && <p className="text-amber-600 font-bold">⚠️ 網址建議以 https:// 開頭</p>}</>
                   ) : (
                     <>{hasNoHttps && <p className="text-amber-600 font-bold">⚠️ 網址請以 https:// 開頭</p>}</>
                   )}
