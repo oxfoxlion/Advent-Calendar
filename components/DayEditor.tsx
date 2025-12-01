@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { updateDay } from '@/app/actions';
-import { Loader2, Check, Save, Link as LinkIcon, FileText, Image as ImageIcon, Youtube, HelpCircle, Plus, Trash2, Music, Map as MapIcon, Ticket, Feather, Globe } from 'lucide-react';
+import { Loader2, Check, Save, Link as LinkIcon, FileText, Image as ImageIcon, Youtube, HelpCircle, Plus, Trash2, Music, Map as MapIcon, Ticket, Feather, Globe, X } from 'lucide-react';
 import { DayContent } from '@/lib/sdk/types';
 
 type Props = {
@@ -19,7 +19,7 @@ const DEFAULT_MAP = "台北101";
 const DEFAULT_SCRATCH_TEXT = "恭喜獲得：按摩券一張！";
 const DEFAULT_TYPEWRITER = "親愛的，\n這是一封給你的信...";
 const DEFAULT_TEXT = "還沒有內容喔！";
-const DEFAULT_LINK = "https://www.google.com"; // 新增連結預設值
+const DEFAULT_LINK = "https://www.google.com";
 
 // 解析內容的 helper function
 function parseJsonContent(content: string | null | undefined) {
@@ -44,6 +44,7 @@ function parseJsonContent(content: string | null | undefined) {
 export default function DayEditor({ slug, day, initialData }: Props) {
   const [isPending, setIsPending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   
   const [contentType, setContentType] = useState<'text' | 'image' | 'youtube' | 'quiz' | 'spotify' | 'map' | 'scratch' | 'typewriter' | 'link'>(
     (initialData?.type === 'video' ? 'youtube' : (initialData?.type || 'text')) as any
@@ -77,7 +78,7 @@ export default function DayEditor({ slug, day, initialData }: Props) {
     else if (newType === 'youtube' && !mediaUrl) setMediaUrl(DEFAULT_VIDEO);
     else if (newType === 'spotify' && !mediaUrl) setMediaUrl(DEFAULT_SPOTIFY);
     else if (newType === 'map' && !location) setLocation(DEFAULT_MAP);
-    else if (newType === 'link' && !mediaUrl) setMediaUrl(DEFAULT_LINK); // 新增
+    else if (newType === 'link' && !mediaUrl) setMediaUrl(DEFAULT_LINK);
     else if (newType === 'scratch') {
         if (scratchMode === 'text' && !textContent) setTextContent(DEFAULT_SCRATCH_TEXT);
         if (scratchMode === 'image' && !mediaUrl) setMediaUrl(DEFAULT_IMAGE);
@@ -93,7 +94,6 @@ export default function DayEditor({ slug, day, initialData }: Props) {
   };
 
   const isGoogleLink = mediaUrl?.includes('drive.google.com') || mediaUrl?.includes('photos.app.goo.gl');
-  // 加入 link 類型也需要 https 檢查
   const hasNoHttps = (contentType === 'image' || contentType === 'youtube' || contentType === 'spotify' || contentType === 'link' || (contentType === 'scratch' && scratchMode === 'image')) &&
                      mediaUrl?.length > 0 && !mediaUrl.trim().startsWith('https://');
 
@@ -109,7 +109,6 @@ export default function DayEditor({ slug, day, initialData }: Props) {
     const formData = new FormData(e.currentTarget);
     let finalContent = '';
 
-    // 加入 link 類型的處理 (結構與 image 相同)
     if (contentType === 'quiz') {
       finalContent = JSON.stringify({ question: quizQuestion, options: quizOptions, answer: correctAnswer });
     } else if (['image', 'youtube', 'spotify', 'link'].includes(contentType)) {
@@ -200,8 +199,12 @@ export default function DayEditor({ slug, day, initialData }: Props) {
               {scratchMode === 'image' ? (
                 <div className="space-y-1">
                   <div className="relative">
-                    <input name="mediaUrl" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://example.com/secret-gift.jpg" className={`w-full bg-white border text-slate-800 rounded-xl p-2.5 pl-9 text-sm placeholder:text-slate-400 focus:ring-1 outline-none transition-all shadow-sm font-mono text-xs ${(isGoogleLink || hasNoHttps) ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-500 bg-amber-50' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500'}`} />
+                    <input name="mediaUrl" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://example.com/secret-gift.jpg" className={`w-full bg-white border text-slate-800 rounded-xl p-2.5 pl-9 pr-10 text-sm placeholder:text-slate-400 focus:ring-1 outline-none transition-all shadow-sm font-mono text-xs ${(isGoogleLink || hasNoHttps) ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-500 bg-amber-50' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500'}`} />
                     <LinkIcon className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${(isGoogleLink || hasNoHttps) ? 'text-amber-500' : 'text-slate-400'}`} />
+                    {/* 說明按鈕 */}
+                    <button type="button" onClick={() => setShowHelp(true)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500 transition" title="如何取得圖片連結？">
+                      <HelpCircle className="w-4 h-4" />
+                    </button>
                   </div>
                   <div className="text-[10px] text-slate-500 px-1 flex flex-col gap-0.5">
                     {isGoogleLink && <p className="text-rose-500 font-bold animate-pulse">🚫 請在Google相簿已公開分享的圖片上按右鍵複製圖片網址，並再試一次</p>}
@@ -218,8 +221,15 @@ export default function DayEditor({ slug, day, initialData }: Props) {
             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
               <div className="space-y-1">
                 <div className="relative">
-                  <input name="mediaUrl" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder={contentType === 'image' ? "https://example.com/image.jpg" : contentType === 'link' ? "https://www.google.com" : "https://youtube.com/..."} className={`w-full bg-white border text-slate-800 rounded-xl p-2.5 pl-9 text-sm placeholder:text-slate-400 focus:ring-1 outline-none transition-all shadow-sm font-mono text-xs ${(isGoogleLink || hasNoHttps) ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-500 bg-amber-50' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500'}`} />
+                  <input name="mediaUrl" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder={contentType === 'image' ? "https://example.com/image.jpg" : contentType === 'link' ? "https://www.google.com" : "https://youtube.com/..."} className={`w-full bg-white border text-slate-800 rounded-xl p-2.5 pl-9 pr-10 text-sm placeholder:text-slate-400 focus:ring-1 outline-none transition-all shadow-sm font-mono text-xs ${(isGoogleLink || hasNoHttps) ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-500 bg-amber-50' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500'}`} />
                   <LinkIcon className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${(isGoogleLink || hasNoHttps) ? 'text-amber-500' : 'text-slate-400'}`} />
+                  
+                  {/* 說明按鈕 - 僅在圖片類型顯示 */}
+                  {contentType === 'image' && (
+                    <button type="button" onClick={() => setShowHelp(true)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500 transition" title="如何取得圖片連結？">
+                      <HelpCircle className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
                 <div className="text-[10px] text-slate-500 px-1 flex flex-col gap-0.5">
                   {contentType === 'image' ? (
@@ -256,6 +266,44 @@ export default function DayEditor({ slug, day, initialData }: Props) {
           {isPending ? <><Loader2 className="w-4 h-4 animate-spin" /><span>儲存中...</span></> : isSuccess ? <><Check className="w-4 h-4" /><span>儲存成功</span></> : <><Save className="w-4 h-4" /><span>儲存內容</span></>}
         </button>
       </form>
+
+      {/* 圖片教學視窗 */}
+      {showHelp && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-white/95 backdrop-blur-sm rounded-2xl animate-in fade-in zoom-in-95 duration-200" onClick={() => setShowHelp(false)}>
+          <div className="w-full h-full flex flex-col items-center justify-center text-center space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-2">
+              <ImageIcon className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-slate-800 text-lg">
+              如何取得圖片連結？
+              <span className="block text-sm text-slate-500 font-normal mt-1">(建議使用電腦操作)</span>
+            </h3>
+            <div className="text-sm text-slate-600 space-y-3 text-left bg-slate-50 p-4 rounded-xl w-full">
+              <div>
+                <p className="font-bold text-slate-700 mb-1">方法 1：使用 meee 圖床</p>
+                <ol className="text-xs leading-relaxed list-decimal pl-4 space-y-1">
+                  <li>上傳照片</li>
+                  <li>在照片上按右鍵，複製圖片網址</li>
+                </ol>
+              </div>
+              <hr className="border-slate-200"/>
+              <div>
+                <p className="font-bold text-slate-700 mb-1">方法 2：使用 Google 相簿</p>
+                <ol className="text-xs leading-relaxed list-decimal pl-4 space-y-1">
+                  <li>共享那張照片，並打開該共享連結</li>
+                  <li>在照片上按右鍵，複製圖片網址</li>
+                </ol>
+              </div>
+            </div>
+            <button onClick={() => setShowHelp(false)} className="px-6 py-2 bg-slate-800 text-white rounded-full text-sm font-bold hover:bg-slate-700 transition">
+              我知道了
+            </button>
+          </div>
+          <button onClick={() => setShowHelp(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-2">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
