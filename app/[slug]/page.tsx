@@ -9,7 +9,8 @@ import BackgroundDecoration from '@/components/BackgroundDecoration';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import ReminderButton from '@/components/ReminderButton';
-import { Sparkles } from 'lucide-react';
+// ★ 修改：引入 AtSign (@符號)，這是最像 Threads 的通用圖示
+import { Sparkles, AtSign } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,9 +46,9 @@ function getBackgroundStyle(bgString: string) {
   };
 }
 
-// 新增：動態產生頁面標題 (現在有 Metadata 匯入了，不會報錯)
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const { slug } = params;
+// 動態產生頁面標題
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
   const profile = await getCalendarProfile(slug);
 
   if (!profile) {
@@ -59,14 +60,12 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title: `${profile.recipientName} | 2025 降臨曆`,
     description: ` ${profile.recipientName} 25 天倒數驚喜`,
-    // 您也可以在這裡設定 Open Graph (分享卡片) 的圖片
     openGraph: {
       title: `${profile.recipientName} | 2025 降臨曆`,
       description: '快來看看我為你準備的 25 個禮物！',
     },
   };
 }
-
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -77,7 +76,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const cookieStore = await cookies();
   // 取得是否為管理員
   const isAdmin = cookieStore.get(`admin-${slug}`)?.value === 'granted';
-  // 修改：將訪客權限的取得移到外層，以便判斷是否顯示登出鈕
+  // 訪客權限
   const hasAccess = cookieStore.get(`access-${slug}`)?.value === 'granted';
 
   // 檢查密碼保護 (如果是管理員則跳過檢查)
@@ -85,13 +84,13 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     if (!hasAccess) return <LockScreen slug={slug} />;
   }
 
-  // 新增：判斷是否需要顯示登出按鈕 (只要是管理員，或是已解鎖私密日曆的訪客，就顯示登出)
+  // 判斷是否顯示登出按鈕
   const showLogout = isAdmin || (profile.hasPassword && hasAccess);
 
   const days = await getSafeCalendarDays(profile.id, isAdmin);
   const themeStyle = getBackgroundStyle(profile.background);
 
-  // 統一樣式：半透明白底、深色字、圓角
+  // 統一樣式
   const buttonStyle = "flex items-center gap-2 bg-white/50 hover:bg-white/80 text-slate-800 px-4 py-2 rounded-full text-sm font-bold transition-all border border-white/40 backdrop-blur-sm shadow-sm";
 
   return (
@@ -115,7 +114,6 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           <p className="text-sm font-medium mb-6 text-white/80 drop-shadow-sm">2025 Advent Calendar</p>
 
           <div className="flex justify-center gap-3 flex-wrap">
-            {/* 新增：導航回首頁的按鈕 (放在最左側) */}
             <Link href="/" className={buttonStyle} title="製作我的專屬日曆">
               <Sparkles className="w-4 h-4 text-amber-500" />
               <span>製作我的專屬日曆</span>
@@ -123,7 +121,6 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
             <ShareButton slug={slug} />
             <ReminderButton title={profile.recipientName} />
-            {/* 新增：登出按鈕 (顯示於此) */}
             {showLogout && <LogoutButton slug={slug} />}
 
             {isAdmin ? (
@@ -151,8 +148,20 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           isAdmin={isAdmin}
         />
 
-        <footer className="text-center text-xs mt-12 pb-6 opacity-60 text-white">
-          InsatantCheese Shao | 2025
+        <footer className="text-center text-xs mt-12 pb-6 opacity-70 text-white flex flex-col items-center gap-2">
+          <p>InstantCheese Shao | 2025</p>
+          
+          {/* Threads 連結按鈕 */}
+          <a 
+            href="https://www.threads.com/@instantcheese_shao" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 hover:text-white hover:underline transition-all"
+          >
+            {/* 使用 AtSign (@) 作為 Threads 的圖示 */}
+            <AtSign className="w-3 h-3" />
+            <span>Threads</span>
+          </a>
         </footer>
       </div>
     </main>

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Home, ExternalLink } from 'lucide-react';
+// ★ 修改：加入 AtSign 圖示
+import { Home, ExternalLink, AtSign } from 'lucide-react';
 import AppearanceSettings from '@/components/AppearanceSettings';
 import DayEditor from '@/components/DayEditor';
 import BackgroundDecoration from '@/components/BackgroundDecoration';
@@ -127,9 +128,18 @@ export default function EditPageClient({ profile, days, slug }: Props) {
           </section>
         </div>
 
-        {/* ★ 新增：頁尾簽名 (顏色改為 slate-600 以配合編輯頁面的深色文字風格) */}
-        <footer className="text-center text-xs mt-12 pb-6 opacity-60 text-white">
-          InstantCheese Shao | 2025
+        {/* ★ 修改：頁尾區塊 */}
+        <footer className="text-center text-xs mt-12 pb-6 opacity-60 text-white flex flex-col items-center gap-2">
+          <p>InstantCheese Shao | 2025</p>
+          <a 
+            href="https://www.threads.com/@instantcheese_shao" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 hover:text-white hover:underline transition-all"
+          >
+            <AtSign className="w-3 h-3" />
+            <span>Threads</span>
+          </a>
         </footer>
       </div>
     </div>

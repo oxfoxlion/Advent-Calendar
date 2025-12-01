@@ -3,7 +3,8 @@
 import { createCalendar } from './actions';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Edit, X, ArrowRight, Palette, Sparkles, SmilePlus } from 'lucide-react';
+// ★ 修改：加入 AtSign 圖示
+import { Loader2, Edit, X, ArrowRight, Palette, Sparkles, SmilePlus, AtSign } from 'lucide-react';
 import BackgroundDecoration from '@/components/BackgroundDecoration';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 
@@ -50,36 +51,25 @@ export default function Home() {
     setSlugInput(val);
   };
 
-  // ★ 修改：改為 Form Event Handler
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // 1. 阻止預設提交，奪回控制權
-    
-    // 2. 馬上設定 Loading (React 會在此時觸發渲染)
+    e.preventDefault();
     setIsPending(true);
     setSlugError('');
     setAccessError('');
 
-    // 3. 手動建立 FormData
     const formData = new FormData(e.currentTarget);
-
-    // 4. 補上我們 State 中的客製化欄位
     const bgConfig = `custom-bg:${bgStart},${bgEnd},${pattern},${quantity},${size},${rotation},${animation}`;
     formData.set('background', bgConfig);
     formData.set('cardStyle', `custom-card:${cardColor}`);
     formData.set('themeColor', 'custom'); 
     formData.set('slug', slugInput); 
 
-    // ★ 強制等待，讓使用者看得到轉圈圈 (體驗優化)
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // 5. 呼叫 Server Action
     const res = await createCalendar(formData);
     
-    // 6. 處理結果
     if (res && !res.success) {
-      // 失敗：解除鎖定，顯示錯誤
       setIsPending(false);
-
       if (res.field === 'slug') {
         setSlugError(res.message);
         setTimeout(() => slugRef.current?.focus(), 100);
@@ -93,7 +83,6 @@ export default function Home() {
         slugRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
-    // 成功：保持 isPending 為 true，直到頁面跳轉
   };
 
   const handleGoToEdit = (e: React.FormEvent) => {
@@ -124,7 +113,6 @@ export default function Home() {
           <p className="mt-3 text-slate-600 font-medium">為重要的人準備 25 天的驚喜</p>
         </div>
 
-        {/* ★ 修改：使用 onSubmit */}
         <form onSubmit={handleSubmit} className="mt-8 space-y-6 bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-white/50 shadow-2xl relative z-20">
           <div className="space-y-6">
             
@@ -185,7 +173,6 @@ export default function Home() {
 
             <hr className="border-slate-200/60 my-2"/>
 
-            {/* 背景與圖樣設定 */}
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">1. 設定背景氛圍</label>
               <div className="relative h-12 w-full rounded-full border border-slate-200 shadow-inner flex items-center px-1 bg-white">
@@ -263,7 +250,19 @@ export default function Home() {
           </button>
         </form>
         
-        <p className="text-center text-xs mt-12 pb-6 opacity-60 text-white">InstantCheese Shao | 2025</p>
+        {/* ★ 修改：頁尾區塊 */}
+        <footer className="text-center text-xs mt-12 pb-6 opacity-60 text-white flex flex-col items-center gap-2">
+          <p>InstantCheese Shao | 2025</p>
+          <a 
+            href="https://www.threads.com/@instantcheese_shao" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 hover:text-white hover:underline transition-all"
+          >
+            <AtSign className="w-3 h-3" />
+            <span>Threads</span>
+          </a>
+        </footer>
       </div>
 
       {showEditModal && (
