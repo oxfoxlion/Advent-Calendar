@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-// ★ 修改：加入 AtSign 圖示
-import { Home, ExternalLink, AtSign } from 'lucide-react';
+// ★ 修改：加入 Lock, X, AtSign
+import { Home, ExternalLink, AtSign, Lock, X } from 'lucide-react';
 import AppearanceSettings from '@/components/AppearanceSettings';
+import SecuritySettings from '@/components/SecuritySettings';
 import DayEditor from '@/components/DayEditor';
 import BackgroundDecoration from '@/components/BackgroundDecoration';
 import { CalendarProfile, DayContent } from '@/lib/sdk/types';
@@ -30,7 +31,7 @@ type Props = {
 };
 
 export default function EditPageClient({ profile, days, slug }: Props) {
-  // 解析背景字串: custom-bg:色1,色2,圖樣,數量,大小,角度,動畫
+  // 解析背景字串
   const initBgString = profile.background.startsWith('custom-bg:')
     ? profile.background.replace('custom-bg:', '')
     : (THEME_DEFAULTS[profile.background]?.join(',') || THEME_DEFAULTS.classic.join(','));
@@ -58,12 +59,17 @@ export default function EditPageClient({ profile, days, slug }: Props) {
   const [animation, setAnimation] = useState(initAnimation);
   const [cardColor, setCardColor] = useState(initCard);
 
+  // ★ 新增：控制密碼設定 Modal
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+
+  // 按鈕共用樣式 (確保一致性)
+  const buttonStyle = "px-4 py-2 bg-white/50 backdrop-blur-sm text-slate-800 hover:bg-white/80 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-sm border border-white/40 cursor-pointer";
+
   return (
     <div 
       className="min-h-screen p-6 pb-32 transition-colors duration-300 relative"
       style={{ background: `linear-gradient(135deg, ${bgStart}, ${bgEnd})` }}
     >
-      {/* 傳遞所有參數給背景裝飾 (即時預覽) */}
       <BackgroundDecoration 
         pattern={pattern} 
         quantity={quantity} 
@@ -72,7 +78,6 @@ export default function EditPageClient({ profile, days, slug }: Props) {
         animation={animation as any}
       />
 
-      {/* 內容層 (z-10 確保在裝飾之上) */}
       <div className="relative z-10">
         <header className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <div className="flex items-center gap-4 w-full md:w-auto">
@@ -85,14 +90,23 @@ export default function EditPageClient({ profile, days, slug }: Props) {
             </div>
           </div>
 
-          <Link href={`/${slug}`} className="px-4 py-2 bg-white/50 backdrop-blur-sm text-slate-800 hover:bg-white/80 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-sm border border-white/40">
-            <ExternalLink className="w-4 h-4" /> 預覽成果
-          </Link>
+          {/* ★ 修改：右上角按鈕群組 */}
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setShowSecurityModal(true)}
+              className={buttonStyle}
+            >
+              <Lock className="w-4 h-4" /> 密碼設定
+            </button>
+
+            <Link href={`/${slug}`} className={buttonStyle}>
+              <ExternalLink className="w-4 h-4" /> 預覽成果
+            </Link>
+          </div>
         </header>
 
         <div className="max-w-5xl mx-auto space-y-8">
           
-          {/* 外觀設定區塊 (傳遞所有 setter) */}
           <AppearanceSettings 
             slug={slug} 
             profile={profile}
@@ -106,7 +120,6 @@ export default function EditPageClient({ profile, days, slug }: Props) {
             animation={animation} setAnimation={setAnimation}
           />
 
-          {/* 每日內容 (保持不變) */}
           <section>
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800 drop-shadow-sm">
               📅 每日內容 (25天)
@@ -128,11 +141,10 @@ export default function EditPageClient({ profile, days, slug }: Props) {
           </section>
         </div>
 
-        {/* ★ 修改：頁尾區塊 */}
         <footer className="text-center text-xs mt-12 pb-6 opacity-60 text-white flex flex-col items-center gap-2">
           <p>InstantCheese Shao | 2025</p>
           <a 
-            href="https://www.threads.com/@instantcheese_shao" 
+            href="https://www.threads.net/@oxfoxlion" 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 hover:text-white hover:underline transition-all"
@@ -142,6 +154,21 @@ export default function EditPageClient({ profile, days, slug }: Props) {
           </a>
         </footer>
       </div>
+
+      {/* ★ 新增：密碼設定 Modal */}
+      {showSecurityModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowSecurityModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative" onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setShowSecurityModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-2 transition z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <SecuritySettings slug={slug} hasPassword={profile.hasPassword} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

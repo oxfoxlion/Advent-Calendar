@@ -3,8 +3,8 @@
 import { createCalendar } from './actions';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-// ★ 修改：加入 AtSign 圖示
-import { Loader2, Edit, X, ArrowRight, Palette, Sparkles, SmilePlus, AtSign } from 'lucide-react';
+// ★ 修改：加入 Eye, EyeOff 圖示
+import { Loader2, Edit, X, ArrowRight, Palette, Sparkles, SmilePlus, AtSign, Eye, EyeOff } from 'lucide-react';
 import BackgroundDecoration from '@/components/BackgroundDecoration';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 
@@ -22,13 +22,17 @@ export default function Home() {
   const [animation, setAnimation] = useState('float');
 
   // 2. 表單與互動狀態
-  const [isPending, setIsPending] = useState(false); // 控制按鈕 Loading
+  const [isPending, setIsPending] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editSlug, setEditSlug] = useState('');
   
   const [slugInput, setSlugInput] = useState('');
   const [slugError, setSlugError] = useState('');
   const [accessError, setAccessError] = useState('');
+
+  // ★ 新增：密碼顯示狀態
+  const [showAdminPass, setShowAdminPass] = useState(false);
+  const [showAccessPass, setShowAccessPass] = useState(false);
 
   const slugRef = useRef<HTMLInputElement>(null);
   const accessCodeRef = useRef<HTMLInputElement>(null);
@@ -147,24 +151,50 @@ export default function Home() {
               </div>
             </div>
 
+            {/* ★ 修改：加入眼睛切換的密碼輸入框 */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">設定管理員密碼</label>
-                <input name="adminCode" required type="text" placeholder="自訂密碼" 
-                  className="w-full rounded-xl bg-white border-slate-200 p-3 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm" />
+                <div className="relative">
+                  <input 
+                    name="adminCode" 
+                    required 
+                    type={showAdminPass ? "text" : "password"} 
+                    placeholder="自訂密碼" 
+                    className="w-full rounded-xl bg-white border-slate-200 text-slate-800 p-3 pr-10 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm" 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAdminPass(!showAdminPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                  >
+                    {showAdminPass ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">訪客密碼 (選填)</label>
-                <input 
-                  ref={accessCodeRef}
-                  name="accessCode" type="text" placeholder="留空則公開" 
-                  onChange={() => setAccessError('')}
-                  className={`w-full rounded-xl bg-white border p-3 focus:ring-2 outline-none shadow-sm ${
-                    accessError 
-                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500 bg-rose-50' 
-                      : 'border-slate-200 focus:ring-indigo-500'
-                  }`}
-                />
+                <div className="relative">
+                  <input 
+                    ref={accessCodeRef}
+                    name="accessCode" 
+                    type={showAccessPass ? "text" : "password"} 
+                    placeholder="留空則公開" 
+                    onChange={() => setAccessError('')}
+                    className={`w-full rounded-xl bg-white border p-3 pr-10 focus:ring-2 outline-none shadow-sm ${
+                      accessError 
+                        ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500 bg-rose-50' 
+                        : 'border-slate-200 focus:ring-indigo-500'
+                    }`}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAccessPass(!showAccessPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                  >
+                    {showAccessPass ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
+                  </button>
+                </div>
                 {accessError && (
                   <p className="text-xs text-rose-500 mt-1 pl-1 font-bold flex items-center gap-1 animate-pulse">🚫 {accessError}</p>
                 )}
@@ -250,19 +280,7 @@ export default function Home() {
           </button>
         </form>
         
-        {/* ★ 修改：頁尾區塊 */}
-        <footer className="text-center text-xs mt-12 pb-6 opacity-60 text-white flex flex-col items-center gap-2">
-          <p>InstantCheese Shao | 2025</p>
-          <a 
-            href="https://www.threads.com/@instantcheese_shao" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 hover:text-white hover:underline transition-all"
-          >
-            <AtSign className="w-3 h-3" />
-            <span>Threads</span>
-          </a>
-        </footer>
+        <p className="text-center text-xs mt-12 pb-6 opacity-60 text-white">InstantCheese Shao | 2025</p>
       </div>
 
       {showEditModal && (

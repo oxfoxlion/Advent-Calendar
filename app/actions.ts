@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-// ... (verifyAccess, verifyAdmin 保持不變) ...
 export async function verifyAccess(slug: string, password: string) {
   const { data } = await supabase.from('calendars').select('access_code').eq('slug', slug).single();
   if (data && data.access_code === password) {
@@ -59,12 +58,11 @@ export async function createCalendar(formData: FormData) {
     return { success: false, message: '建立失敗，請稍後再試', field: 'root' };
   }
 
-  // ★ 修改：初始 title 設為 null，讓前端自動顯示 Day X
   const days = Array.from({ length: 25 }, (_, i) => ({
     calendar_id: calendar.id, 
     day_number: i + 1, 
     content_type: 'text', 
-    title: null, // 原本是 `Day ${i + 1}`
+    title: null, 
     content: '還沒有內容喔！'
   }));
 
@@ -81,7 +79,6 @@ export async function createCalendar(formData: FormData) {
   redirect(`/${slug}/edit`);
 }
 
-// ... (updateDay, updateCalendarSettings, logout 保持不變) ...
 export async function updateDay(slug: string, day: number, formData: FormData) {
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get(`admin-${slug}`)?.value === 'granted';
@@ -89,7 +86,7 @@ export async function updateDay(slug: string, day: number, formData: FormData) {
   const { data: cal } = await supabase.from('calendars').select('id').eq('slug', slug).single();
   if (!cal) return { success: false, message: 'Calendar not found' };
   const { error } = await supabase.from('calendar_days').update({ 
-      title: formData.get('title') as string, // 如果前端傳空字串，這裡會存入空字串或null
+      title: formData.get('title') as string,
       content: formData.get('content') as string, 
       content_type: formData.get('type') as string 
     }).match({ calendar_id: cal.id, day_number: day });
@@ -108,6 +105,51 @@ export async function updateCalendarSettings(formData: FormData) {
       background: formData.get('background') as string,
       card_style: formData.get('cardStyle') as string
     }).eq('slug', slug);
+  if (error) return { success: false, message: error.message };
+  return { success: true };
+}
+
+// ★ 新增：更新密碼的功能
+export async function updatePasswords(formData: FormData) {
+  const slug = formData.get('slug') as string;
+  const cookieStore = await cookies();
+  const isAdmin = cookieStore.get(`admin-${slug}`)?.value === 'granted';
+
+  if (!isAdmin) return { success: false, message: '權限不足' };
+
+  const adminCode = formData.get('adminCode') as string;
+  const accessCode = formData.get('accessCode') as string;
+  const useGuestPassword = formData.get('useGuestPassword') === 'on';
+
+  const updates: any = {};
+
+  // 更新管理員密碼 (如果有填)
+  if (adminCode && adminCode.trim() !== '') {
+    updates.admin_code = adminCode;
+  }
+
+  // 更新訪客密碼
+  if (useGuestPassword) {
+    // 如果勾選啟用，且有填寫新密碼，則更新；若沒填則保持原樣 (這邏輯由前端控制，後端這裡只要收到值就更新)
+    if (accessCode && accessCode.trim() !== '') {
+      updates.access_code = accessCode;
+    }
+  } else {
+    // 如果沒勾選啟用，則設為 NULL (公開)
+    updates.access_code = null;
+  }
+
+  // 檢查訪客密碼是否與管理員密碼相同 (如果有更新的話)
+  if (updates.admin_code && updates.access_code && updates.admin_code === updates.access_code) {
+    return { success: false, message: '訪客密碼不能與管理員密碼相同！' };
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return { success: true, message: '沒有變更任何設定' };
+  }
+
+  const { error } = await supabase.from('calendars').update(updates).eq('slug', slug);
+
   if (error) return { success: false, message: error.message };
   return { success: true };
 }
