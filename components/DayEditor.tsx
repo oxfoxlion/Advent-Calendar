@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { updateDay } from '@/app/actions';
-import { Loader2, Check, Save, Link as LinkIcon, FileText, Image as ImageIcon, Youtube, HelpCircle, Plus, Trash2, Music, Map as MapIcon, Ticket, Feather } from 'lucide-react';
+import { Loader2, Check, Save, Link as LinkIcon, FileText, Image as ImageIcon, Youtube, HelpCircle, Plus, Trash2, Music, Map as MapIcon, Ticket, Feather, Globe } from 'lucide-react';
 import { DayContent } from '@/lib/sdk/types';
 
 type Props = {
@@ -11,14 +11,15 @@ type Props = {
   initialData?: DayContent;
 };
 
-// 預設素材 (已更新為您指定的網址)
+// 預設素材
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1512389142860-9c449e58a543";
 const DEFAULT_VIDEO = "https://www.youtube.com/watch?v=aAkMkVFwAoo";
-const DEFAULT_SPOTIFY = "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT"; // 建議換成有效的 Spotify 連結
+const DEFAULT_SPOTIFY = "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT"; 
 const DEFAULT_MAP = "台北101";
 const DEFAULT_SCRATCH_TEXT = "恭喜獲得：按摩券一張！";
 const DEFAULT_TYPEWRITER = "親愛的，\n這是一封給你的信...";
 const DEFAULT_TEXT = "還沒有內容喔！";
+const DEFAULT_LINK = "https://www.google.com"; // 新增連結預設值
 
 // 解析內容的 helper function
 function parseJsonContent(content: string | null | undefined) {
@@ -33,7 +34,6 @@ function parseJsonContent(content: string | null | undefined) {
       isImage: data.isImage || false
     };
   } catch (e) {
-    // ★ 關鍵修正：如果是預設文字，視為沒有網址，這樣切換類型時才會自動填入預設圖/影片
     if (content === DEFAULT_TEXT) {
       return { url: '', description: '', text: content, location: '', isImage: false };
     }
@@ -45,30 +45,22 @@ export default function DayEditor({ slug, day, initialData }: Props) {
   const [isPending, setIsPending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
-  const [contentType, setContentType] = useState<'text' | 'image' | 'youtube' | 'quiz' | 'spotify' | 'map' | 'scratch' | 'typewriter'>(
+  const [contentType, setContentType] = useState<'text' | 'image' | 'youtube' | 'quiz' | 'spotify' | 'map' | 'scratch' | 'typewriter' | 'link'>(
     (initialData?.type === 'video' ? 'youtube' : (initialData?.type || 'text')) as any
   );
   
-  // ★ 關鍵修正：加上 ?? null 解決 build error
   const parsedData = parseJsonContent(initialData?.content ?? null);
 
   // --- 狀態管理 ---
-  // 1. 文字類內容
   const [textContent, setTextContent] = useState(
     (['text', 'typewriter', 'scratch'].includes(initialData?.type || '') && !parsedData.isImage ? (parsedData.text || initialData?.content) : '') || ''
   );
 
-  // 2. 媒體類內容
   const [mediaUrl, setMediaUrl] = useState(parsedData.url);
   const [mediaDesc, setMediaDesc] = useState(parsedData.description);
-
-  // 3. 地圖
   const [location, setLocation] = useState(parsedData.location);
-
-  // 4. 刮刮樂模式 (文字/圖片)
   const [scratchMode, setScratchMode] = useState<'text' | 'image'>(parsedData.isImage ? 'image' : 'text');
 
-  // 5. 測驗
   const initialQuiz = initialData?.type === 'quiz' && initialData.content 
     ? JSON.parse(initialData.content) 
     : { question: '聖誕老公公的馴鹿有幾隻？', options: ['8隻', '9隻', '12隻'], answer: '9隻' };
@@ -81,31 +73,28 @@ export default function DayEditor({ slug, day, initialData }: Props) {
   const handleTypeChange = (newType: string) => {
     setContentType(newType as any);
     
-    // 如果目前網址是空的 (parseJsonContent 修正後會是空)，就填入預設值
     if (newType === 'image' && !mediaUrl) setMediaUrl(DEFAULT_IMAGE);
     else if (newType === 'youtube' && !mediaUrl) setMediaUrl(DEFAULT_VIDEO);
     else if (newType === 'spotify' && !mediaUrl) setMediaUrl(DEFAULT_SPOTIFY);
     else if (newType === 'map' && !location) setLocation(DEFAULT_MAP);
+    else if (newType === 'link' && !mediaUrl) setMediaUrl(DEFAULT_LINK); // 新增
     else if (newType === 'scratch') {
         if (scratchMode === 'text' && !textContent) setTextContent(DEFAULT_SCRATCH_TEXT);
-        // ★ 確保切換到刮刮樂且是圖片模式時，也會預填圖片
         if (scratchMode === 'image' && !mediaUrl) setMediaUrl(DEFAULT_IMAGE);
     }
     else if (newType === 'typewriter' && !textContent) setTextContent(DEFAULT_TYPEWRITER);
     else if (newType === 'text' && !textContent) setTextContent(DEFAULT_TEXT);
   };
 
-  // 切換刮刮樂模式
   const handleScratchModeChange = (mode: 'text' | 'image') => {
     setScratchMode(mode);
-    // ★ 確保切換模式時預填對應內容
     if (mode === 'image' && !mediaUrl) setMediaUrl(DEFAULT_IMAGE);
     if (mode === 'text' && !textContent) setTextContent(DEFAULT_SCRATCH_TEXT);
   };
 
-  // 偵測與警告
   const isGoogleLink = mediaUrl?.includes('drive.google.com') || mediaUrl?.includes('photos.app.goo.gl');
-  const hasNoHttps = (contentType === 'image' || contentType === 'youtube' || contentType === 'spotify' || (contentType === 'scratch' && scratchMode === 'image')) &&
+  // 加入 link 類型也需要 https 檢查
+  const hasNoHttps = (contentType === 'image' || contentType === 'youtube' || contentType === 'spotify' || contentType === 'link' || (contentType === 'scratch' && scratchMode === 'image')) &&
                      mediaUrl?.length > 0 && !mediaUrl.trim().startsWith('https://');
 
   const addOption = () => { if (quizOptions.length < 4) setQuizOptions([...quizOptions, '']); };
@@ -120,9 +109,10 @@ export default function DayEditor({ slug, day, initialData }: Props) {
     const formData = new FormData(e.currentTarget);
     let finalContent = '';
 
+    // 加入 link 類型的處理 (結構與 image 相同)
     if (contentType === 'quiz') {
       finalContent = JSON.stringify({ question: quizQuestion, options: quizOptions, answer: correctAnswer });
-    } else if (['image', 'youtube', 'spotify'].includes(contentType)) {
+    } else if (['image', 'youtube', 'spotify', 'link'].includes(contentType)) {
       finalContent = JSON.stringify({ url: mediaUrl, description: mediaDesc });
     } else if (contentType === 'map') {
       finalContent = JSON.stringify({ location: location, description: mediaDesc });
@@ -166,13 +156,22 @@ export default function DayEditor({ slug, day, initialData }: Props) {
             <option value="image">🖼️ 圖片 (網址+描述)</option>
             <option value="youtube">🎥 影片 (YouTube+描述)</option>
             <option value="spotify">🎵 音樂 (Spotify+描述)</option>
+            <option value="link">🔗 外部連結 (網址+提示)</option>
             <option value="map">📍 藏寶圖 (Google Maps)</option>
             <option value="quiz">🧠 趣味問答 (選擇題)</option>
             <option value="scratch">🎟️ 刮刮樂 (圖片/文字)</option>
             <option value="typewriter">💌 打字機情書 (動態文字)</option>
           </select>
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-            {contentType === 'text' && <FileText className="w-4 h-4" />}{contentType === 'image' && <ImageIcon className="w-4 h-4" />}{contentType === 'youtube' && <Youtube className="w-4 h-4" />}{contentType === 'quiz' && <HelpCircle className="w-4 h-4" />}{contentType === 'spotify' && <Music className="w-4 h-4" />}{contentType === 'map' && <MapIcon className="w-4 h-4" />}{contentType === 'scratch' && <Ticket className="w-4 h-4" />}{contentType === 'typewriter' && <Feather className="w-4 h-4" />}
+            {contentType === 'text' && <FileText className="w-4 h-4" />}
+            {contentType === 'image' && <ImageIcon className="w-4 h-4" />}
+            {contentType === 'youtube' && <Youtube className="w-4 h-4" />}
+            {contentType === 'quiz' && <HelpCircle className="w-4 h-4" />}
+            {contentType === 'spotify' && <Music className="w-4 h-4" />}
+            {contentType === 'map' && <MapIcon className="w-4 h-4" />}
+            {contentType === 'scratch' && <Ticket className="w-4 h-4" />}
+            {contentType === 'typewriter' && <Feather className="w-4 h-4" />}
+            {contentType === 'link' && <Globe className="w-4 h-4" />}
           </div>
         </div>
         
@@ -215,11 +214,11 @@ export default function DayEditor({ slug, day, initialData }: Props) {
                 </div>
               )}
             </div>
-          ) : ['image', 'youtube', 'spotify'].includes(contentType) ? (
+          ) : ['image', 'youtube', 'spotify', 'link'].includes(contentType) ? (
             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
               <div className="space-y-1">
                 <div className="relative">
-                  <input name="mediaUrl" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder={contentType === 'image' ? "https://example.com/image.jpg" : contentType === 'youtube' ? "https://www.youtube.com/watch?v=..." : "open.spotify.com/album..."} className={`w-full bg-white border text-slate-800 rounded-xl p-2.5 pl-9 text-sm placeholder:text-slate-400 focus:ring-1 outline-none transition-all shadow-sm font-mono text-xs ${(isGoogleLink || hasNoHttps) ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-500 bg-amber-50' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500'}`} />
+                  <input name="mediaUrl" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder={contentType === 'image' ? "https://example.com/image.jpg" : contentType === 'link' ? "https://www.google.com" : "https://youtube.com/..."} className={`w-full bg-white border text-slate-800 rounded-xl p-2.5 pl-9 text-sm placeholder:text-slate-400 focus:ring-1 outline-none transition-all shadow-sm font-mono text-xs ${(isGoogleLink || hasNoHttps) ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-500 bg-amber-50' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500'}`} />
                   <LinkIcon className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${(isGoogleLink || hasNoHttps) ? 'text-amber-500' : 'text-slate-400'}`} />
                 </div>
                 <div className="text-[10px] text-slate-500 px-1 flex flex-col gap-0.5">
@@ -231,7 +230,9 @@ export default function DayEditor({ slug, day, initialData }: Props) {
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{contentType === 'image' ? '照片描述 (選填)' : '影片描述 (選填)'}</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  {contentType === 'image' ? '照片描述 (選填)' : contentType === 'link' ? '連結提示文字 (選填)' : '影片描述 (選填)'}
+                </label>
                 <textarea name="mediaDesc" value={mediaDesc} onChange={(e) => setMediaDesc(e.target.value)} placeholder="寫點什麼..." className="w-full bg-white border border-slate-200 text-slate-800 rounded-xl p-3 text-sm h-20 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none transition-all shadow-sm"/>
               </div>
             </div>

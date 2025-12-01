@@ -17,6 +17,8 @@ import {
   Map as MapIcon,
   Ticket,
   Feather,
+  Link as LinkIcon,
+  ExternalLink,
 } from 'lucide-react';
 import { useState, useEffect, useRef, type SyntheticEvent } from 'react';
 import { clsx } from 'clsx';
@@ -51,7 +53,7 @@ function getSpotifyEmbedUrl(url: string) {
     .replace('open.spotify.com/episode', 'open.spotify.com/embed/episode');
 }
 
-// 解析內容（包含 quiz / map / scratch / typewriter）
+// 解析內容（包含 quiz / map / scratch / typewriter / link）
 function parseContent(content: string | null, type: string) {
   if (!content)
     return {
@@ -105,7 +107,7 @@ function parseContent(content: string | null, type: string) {
         quiz: null,
       };
 
-    // image / video / spotify / typewriter 等一般媒體
+    // image / video / spotify / typewriter / link 等一般媒體
     return {
       url: data.url,
       description: data.description || '',
@@ -126,7 +128,7 @@ function parseContent(content: string | null, type: string) {
   }
 }
 
-// Quiz Card
+// Quiz Card (保持不變)
 function QuizCard({ data, onClose }: { data: any; onClose: () => void }) {
   const [status, setStatus] = useState<'idle' | 'correct' | 'wrong'>('idle');
   const [selected, setSelected] = useState<string | null>(null);
@@ -211,7 +213,7 @@ function QuizCard({ data, onClose }: { data: any; onClose: () => void }) {
   );
 }
 
-// ★ 支援「圖片自適應高度」的刮刮樂
+// Scratch Card (保持不變)
 function ScratchCard({
   data,
 }: {
@@ -220,7 +222,6 @@ function ScratchCard({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 共用的畫銀漆＋文字函式
   const drawOverlay = () => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -229,38 +230,29 @@ function ScratchCard({
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
-    // 依據容器大小重新設定畫布
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight || 0;
 
     if (canvas.width === 0 || canvas.height === 0) return;
 
-    // 畫銀漆層
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = '#C0C0C0';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 提示文字
     ctx.fillStyle = '#909090';
     ctx.font = 'bold 20px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('✨ 刮開我 ✨', canvas.width / 2, canvas.height / 2);
 
-    // 之後的畫筆改成「擦除模式」
     ctx.globalCompositeOperation = 'destination-out';
   };
 
-  // 圖片載入完成後，依照圖片高度調整容器與畫布
   const handleImageLoad = (e: SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget as HTMLImageElement;
     const container = containerRef.current;
     if (!container) return;
-
-    // 容器高度 = 圖片實際高度
     container.style.height = img.clientHeight + 'px';
-
-    // 重新繪製銀漆層
     drawOverlay();
   };
 
@@ -299,14 +291,13 @@ function ScratchCard({
 
     const start = (e: MouseEvent | TouchEvent) => {
       isDrawing = true;
-      draw(e); // 一開始就刮一筆，避免點一下沒有反應
+      draw(e); 
     };
 
     const end = () => {
       isDrawing = false;
     };
 
-    // 事件綁定
     const handleMouseDown = (e: MouseEvent) => start(e);
     const handleMouseMove = (e: MouseEvent) => draw(e);
     const handleMouseUp = () => end();
@@ -328,7 +319,6 @@ function ScratchCard({
     });
     canvas.addEventListener('touchend', handleTouchEnd);
 
-    // 視窗尺寸改變時，重新繪製銀漆（避免 RWD 變形）
     const handleResize = () => {
       drawOverlay();
     };
@@ -351,11 +341,9 @@ function ScratchCard({
       ref={containerRef}
       className={clsx(
         'relative w-full rounded-xl overflow-hidden bg-white border-2 border-slate-100 shadow-inner',
-        // 文字版還是給一個固定高度；圖片版則由圖片自行決定高度
         !data.isImage && 'h-64'
       )}
     >
-      {/* 底層內容：文字或圖片 */}
       <div className="absolute inset-0 flex items-center justify-center z-0 overflow-hidden">
         {data.isImage ? (
           <img
@@ -370,7 +358,6 @@ function ScratchCard({
           </p>
         )}
       </div>
-      {/* 頂層畫布（刮刮樂銀漆） */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 cursor-crosshair touch-none z-10"
@@ -380,7 +367,7 @@ function ScratchCard({
   );
 }
 
-// 打字機卡片
+// Typewriter Card (保持不變)
 function TypewriterCard({ text }: { text: string }) {
   const [displayedText, setDisplayedText] = useState('');
 
@@ -633,6 +620,24 @@ export default function AdventGrid({
                     </div>
                   )}
 
+                  {/* 新增 Link 類型顯示 */}
+                  {day.type === 'link' && (
+                    <div className="flex flex-col items-center gap-2">
+                      <ExternalLink className="w-8 h-8 text-blue-500 drop-shadow-sm" />
+                      <p className="text-xs text-slate-500 font-bold">
+                        外部連結
+                      </p>
+                      <button
+                        onClick={(e) =>
+                          handleOpenModal(e, 'link', day.content!)
+                        }
+                        className="bg-blue-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition"
+                      >
+                        打開連結
+                      </button>
+                    </div>
+                  )}
+
                   {day.type === 'text' && (
                     <div className="overflow-y-auto max-h-full w-full scrollbar-thin scrollbar-thumb-slate-200">
                       <p className="text-xs whitespace-pre-wrap leading-relaxed break-words text-slate-600">
@@ -663,7 +668,8 @@ export default function AdventGrid({
               exit={{ scale: 0.9, opacity: 0 }}
               className={clsx(
                 'relative w-full flex flex-col gap-4',
-                activeMedia.type === 'quiz'
+                // link 與 quiz 使用較小的容器
+                (activeMedia.type === 'quiz' || activeMedia.type === 'link')
                   ? 'max-w-lg bg-white p-8 rounded-3xl'
                   : 'max-w-4xl'
               )}
@@ -673,7 +679,7 @@ export default function AdventGrid({
                 onClick={() => setActiveMedia(null)}
                 className={clsx(
                   'absolute z-50 p-2 rounded-full transition',
-                  activeMedia.type === 'quiz'
+                  (activeMedia.type === 'quiz' || activeMedia.type === 'link')
                     ? 'top-4 right-4 text-slate-400 hover:bg-slate-100'
                     : '-top-12 right-0 bg-white/20 hover:bg-white/40 text-white'
                 )}
@@ -686,6 +692,45 @@ export default function AdventGrid({
                   data={activeMedia.data.quiz}
                   onClose={() => setActiveMedia(null)}
                 />
+              )}
+
+              {/* 新增：Link 的確認視窗 */}
+              {activeMedia.type === 'link' && (
+                <div className="text-center w-full">
+                  <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <LinkIcon className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">
+                    即將前往外部網站
+                  </h3>
+                  <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                    您確定要離開此頁面嗎？<br />這將會開啟一個新的視窗。
+                  </p>
+                  
+                  {activeMedia.data.description && (
+                    <div className="bg-slate-50 p-4 rounded-xl text-slate-600 text-sm mb-6 border border-slate-100 break-words">
+                      {activeMedia.data.description}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 mt-2">
+                    <button
+                      onClick={() => setActiveMedia(null)}
+                      className="flex-1 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition"
+                    >
+                      取消
+                    </button>
+                    <a
+                      href={activeMedia.data.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setActiveMedia(null)}
+                      className="flex-1 py-3 rounded-xl font-bold text-white bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-200 transition flex items-center justify-center gap-2"
+                    >
+                      前往 <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
               )}
 
               {activeMedia.type === 'video' && (
@@ -757,7 +802,8 @@ export default function AdventGrid({
                 </div>
               )}
 
-              {activeMedia.data.description && (
+              {/* 連結類型已在上方獨立處理，這裡只處理其他類型的描述文字 */}
+              {activeMedia.data.description && activeMedia.type !== 'link' && (
                 <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl text-white text-center border border-white/10 shadow-lg mt-4">
                   <p className="text-sm font-medium leading-relaxed">
                     {activeMedia.data.description}
