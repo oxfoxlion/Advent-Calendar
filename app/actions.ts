@@ -160,3 +160,53 @@ export async function logout(slug: string) {
   cookieStore.delete(`access-${slug}`);
   redirect(`/${slug}`);
 }
+
+// 輔助檢查權限
+async function checkMessagePermission(slug: string) {
+  const cookieStore = await cookies();
+  const isAdmin = cookieStore.get(`admin-${slug}`)?.value === 'granted';
+  const hasAccess = cookieStore.get(`access-${slug}`)?.value === 'granted';
+  
+  const { data: calendar } = await supabase.from('calendars').select('id, access_code').eq('slug', slug).single();
+  if (!calendar) return { allowed: false, calendarId: null };
+
+  // 規則：如果是公開日曆(沒密碼)，或是管理員，或是已解鎖訪客 -> 允許
+  const isPublic = !calendar.access_code;
+  if (isPublic || isAdmin || hasAccess) {
+    return { allowed: true, calendarId: calendar.id };
+  }
+  return { allowed: false, calendarId: null };
+}
+
+export async function getMessages(slug: string) {
+  const { allowed, calendarId } = await checkMessagePermission(slug);
+  if (!allowed || !calendarId) return [];
+
+  const { data } = await supabase
+    .from('calendar_messages')
+    .select('*')
+    .eq('calendar_id', calendarId)
+    .order('created_at', { ascending: true }); // 聊天室通常是舊訊息在上面，新訊息在下面
+
+  return data || [];
+}
+
+export async function addMessage(slug: string, formData: FormData) {
+  const { allowed, calendarId } = await checkMessagePermission(slug);
+  if (!allowed || !calendarId) return { success: false, message: '無權限' };
+
+  const senderName = formData.get('senderName') as string;
+  const content = formData.get('content') as string;
+
+  if (!senderName?.trim() || !content?.trim()) {
+    return { success: false, message: '內容不能為空' };
+  }
+
+  await supabase.from('calendar_messages').insert({
+    calendar_id: calendarId,
+    sender_name: senderName,
+    content: content
+  });
+
+  return { success: true };
+}

@@ -11,6 +11,8 @@ import Link from 'next/link';
 import ReminderButton from '@/components/ReminderButton';
 // ★ 修改：引入 AtSign (@符號)，這是最像 Threads 的通用圖示
 import { Sparkles, AtSign } from 'lucide-react';
+import { getMessages } from '@/app/actions';
+import FloatingGuestbook from '@/components/FloatingGuestbook';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,6 +88,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   // 判斷是否顯示登出按鈕
   const showLogout = isAdmin || (profile.hasPassword && hasAccess);
+
+    // ★ 1. 取得留言資料 (放在 LockScreen 檢查之後，確保有權限才讀取)
+  const messages = await getMessages(slug); 
 
   const days = await getSafeCalendarDays(profile.id, isAdmin);
   const themeStyle = getBackgroundStyle(profile.background);
@@ -164,6 +169,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           </a>
         </footer>
       </div>
+
+      <FloatingGuestbook slug={slug} initialMessages={messages} />
     </main>
   );
 }
