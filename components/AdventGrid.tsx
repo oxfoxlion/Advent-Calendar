@@ -679,10 +679,16 @@ export default function AdventGrid({
                     </div>
                   )}
 
-                  {day.type === 'text' && (
-                    <div className="overflow-y-auto max-h-full w-full scrollbar-thin scrollbar-thumb-slate-200">
-                      <p className="text-xs whitespace-pre-wrap leading-relaxed break-words text-slate-600">
+                  {day.type === 'text' && day.content && (
+                    <div
+                      className="overflow-y-auto max-h-full w-full scrollbar-thin scrollbar-thumb-slate-200 cursor-pointer group"
+                      onClick={(e) => handleOpenModal(e, 'text', day.content!)}
+                    >
+                      <p className="text-xs whitespace-pre-wrap leading-relaxed break-words text-slate-600 line-clamp-6 md:line-clamp-8 group-hover:text-slate-800">
                         {day.content}
+                      </p>
+                      <p className="mt-2 text-[10px] text-slate-400 italic text-right">
+                        點擊卡片放大閱讀
                       </p>
                     </div>
                   )}
@@ -848,6 +854,14 @@ export default function AdventGrid({
                 {activeMedia.type === 'typewriter' && (
                   <div className="bg-white p-8 rounded-3xl shadow-2xl min-h-[300px]">
                     <TypewriterCard text={activeMedia.data.text} />
+                  </div>
+                )}
+
+                {activeMedia.type === 'text' && (
+                  <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-h-[70vh] overflow-y-auto">
+                    <p className="whitespace-pre-wrap text-slate-700 leading-relaxed text-base md:text-lg">
+                      {activeMedia.data.text}
+                    </p>
                   </div>
                 )}
 
