@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { addMessage } from '@/app/actions';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, X, Send, User, Loader2, Minimize2 } from 'lucide-react';
+// ★ 修改：引入 Check icon for the success message
+import { MessageCircle, X, Send, User, Loader2, Minimize2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type Message = {
@@ -16,13 +17,15 @@ type Message = {
 export default function FloatingGuestbook({ slug, initialMessages }: { slug: string, initialMessages: Message[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  // ★ 新增狀態：追蹤訊息是否已送出
+  const [isSent, setIsSent] = useState(false); 
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // ★ 新增：已讀狀態管理
+  // 新增：已讀狀態管理
   const [readIds, setReadIds] = useState<string[]>([]);
-  const [hasLoaded, setHasLoaded] = useState(false); // 防止水合不匹配 (Hydration Mismatch)
+  const [hasLoaded, setHasLoaded] = useState(false); 
 
   // 1. 初始化：從 localStorage 讀取已讀紀錄
   useEffect(() => {
@@ -65,12 +68,19 @@ export default function FloatingGuestbook({ slug, initialMessages }: { slug: str
 
   const handleSubmit = async (formData: FormData) => {
     setIsPending(true);
+    // 預設將 isSent 設為 false
+    setIsSent(false); 
+
     const res = await addMessage(slug, formData);
     setIsPending(false);
 
     if (res.success) {
       formRef.current?.reset();
       router.refresh(); 
+      
+      // ★ 核心修改：送出成功後顯示提示
+      setIsSent(true);
+      setTimeout(() => setIsSent(false), 3000); // 3秒後隱藏提示
     }
   };
 
@@ -89,7 +99,7 @@ export default function FloatingGuestbook({ slug, initialMessages }: { slug: str
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
         
-        {/* ★ 修改：只顯示「未讀」數量 */}
+        {/* 只顯示「未讀」數量 */}
         {!isOpen && hasLoaded && unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white min-w-[20px] animate-bounce">
             {unreadCount}
@@ -97,7 +107,7 @@ export default function FloatingGuestbook({ slug, initialMessages }: { slug: str
         )}
       </motion.button>
 
-      {/* 2. 聊天室視窗 (保持不變) */}
+      {/* 2. 聊天室視窗 */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -150,6 +160,22 @@ export default function FloatingGuestbook({ slug, initialMessages }: { slug: str
 
             {/* Input Form */}
             <div className="p-3 bg-white border-t border-slate-100">
+              {/* ★ 新增：成功提示 */}
+              <AnimatePresence>
+                {isSent && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="flex items-center justify-center gap-2 mb-2 p-2 bg-emerald-100 text-emerald-700 rounded-xl text-sm font-bold shadow-md animate-in fade-in slide-in-from-bottom-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>訊息已送出！</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              {/* 結束新增 */}
+              
               <form ref={formRef} action={handleSubmit} className="flex flex-col gap-2">
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
