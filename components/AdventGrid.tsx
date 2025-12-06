@@ -291,7 +291,7 @@ function ScratchCard({
 
     const start = (e: MouseEvent | TouchEvent) => {
       isDrawing = true;
-      draw(e); 
+      draw(e);
     };
 
     const end = () => {
@@ -349,7 +349,7 @@ function ScratchCard({
           <img
             src={data.url}
             alt="Hidden Prize"
-            className="w-full h-auto object-contain"
+            className="w-full h-auto max-h-[70vh] object-contain"
             onLoad={handleImageLoad}
           />
         ) : (
@@ -370,6 +370,7 @@ function ScratchCard({
 // Typewriter Card (保持不變)
 function TypewriterCard({ text }: { text: string }) {
   const [displayedText, setDisplayedText] = useState('');
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setDisplayedText('');
@@ -387,8 +388,32 @@ function TypewriterCard({ text }: { text: string }) {
     return () => clearInterval(timer);
   }, [text]);
 
+  // 每次文字更新時，自動捲到最底
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [displayedText]);
+
   return (
-    <div className="w-full h-full min-h-[200px] p-6 bg-slate-50 rounded-xl border border-slate-200 font-mono text-slate-700 leading-loose whitespace-pre-wrap overflow-y-auto">
+    <div
+      ref={containerRef}
+      className="
+        w-full
+        min-h-[200px]
+        max-h-[70vh]
+        p-6
+        bg-slate-50
+        rounded-xl
+        border
+        border-slate-200
+        font-mono
+        text-slate-700
+        leading-loose
+        whitespace-pre-wrap
+        overflow-y-auto
+      "
+    >
       {displayedText}
       <span className="animate-pulse ml-1">|</span>
     </div>
@@ -410,6 +435,22 @@ export default function AdventGrid({
 }) {
   const [opened, setOpened] = useState<number[]>([]);
   const [activeMedia, setActiveMedia] = useState<ActiveMedia>(null);
+
+  // Modal 開啟時鎖住背景卷動
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+
+    if (activeMedia) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = originalOverflow;
+    }
+
+    // 保險：元件 unmount 時也恢復
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [activeMedia]);
 
   useEffect(() => {
     const saved = JSON.parse(
@@ -667,149 +708,157 @@ export default function AdventGrid({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className={clsx(
-                'relative w-full flex flex-col gap-4',
-                // link 與 quiz 使用較小的容器
+                'relative w-full max-h-[90vh]',
                 (activeMedia.type === 'quiz' || activeMedia.type === 'link')
-                  ? 'max-w-lg bg-white p-8 rounded-3xl'
+                  ? 'max-w-lg'
                   : 'max-w-4xl'
               )}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* 關閉按鈕：絕對定位，不佔版面、不會擠圖片 */}
               <button
                 onClick={() => setActiveMedia(null)}
                 className={clsx(
                   'absolute z-50 p-2 rounded-full transition',
                   (activeMedia.type === 'quiz' || activeMedia.type === 'link')
-                    ? 'top-4 right-4 text-slate-400 hover:bg-slate-100'
+                    ? 'top-4 right-4 text-slate-400 hover:bg-slate-100 bg-white'
                     : '-top-12 right-0 bg-white/20 hover:bg-white/40 text-white'
                 )}
               >
                 <X className="w-6 h-6" />
               </button>
 
-              {activeMedia.type === 'quiz' && (
-                <QuizCard
-                  data={activeMedia.data.quiz}
-                  onClose={() => setActiveMedia(null)}
-                />
-              )}
-
-              {/* 新增：Link 的確認視窗 */}
-              {activeMedia.type === 'link' && (
-                <div className="text-center w-full">
-                  <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <LinkIcon className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-800 mb-2">
-                    即將前往外部網站
-                  </h3>
-                  <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                    您確定要離開此頁面嗎？<br />這將會開啟一個新的視窗。
-                  </p>
-                  
-                  {activeMedia.data.description && (
-                    <div className="bg-slate-50 p-4 rounded-xl text-slate-600 text-sm mb-6 border border-slate-100 break-words">
-                      {activeMedia.data.description}
-                    </div>
-                  )}
-
-                  <div className="flex gap-3 mt-2">
-                    <button
-                      onClick={() => setActiveMedia(null)}
-                      className="flex-1 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition"
-                    >
-                      取消
-                    </button>
-                    <a
-                      href={activeMedia.data.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setActiveMedia(null)}
-                      className="flex-1 py-3 rounded-xl font-bold text-white bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-200 transition flex items-center justify-center gap-2"
-                    >
-                      前往 <ExternalLink className="w-4 h-4" />
-                    </a>
-                  </div>
-                </div>
-              )}
-
-              {activeMedia.type === 'video' && (
-                <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src={`https://www.youtube.com/embed/${getYouTubeId(
-                      activeMedia.data.url
-                    )}?autoplay=1&rel=0`}
-                    title="YouTube"
-                    allow="autoplay; encrypted-media"
-                    allowFullScreen
-                    className="absolute inset-0"
+              {/* 內層才捲動的內容區 */}
+              <div
+                className={clsx(
+                  'flex flex-col gap-4 overflow-y-auto max-h-[90vh]',
+                  (activeMedia.type === 'quiz' || activeMedia.type === 'link') &&
+                  'bg-white p-8 rounded-3xl'
+                )}
+              >
+                {activeMedia.type === 'quiz' && (
+                  <QuizCard
+                    data={activeMedia.data.quiz}
+                    onClose={() => setActiveMedia(null)}
                   />
-                </div>
-              )}
+                )}
 
-              {activeMedia.type === 'image' && (
-                <img
-                  src={activeMedia.data.url}
-                  alt="Surprise"
-                  className="w-auto h-auto max-h-[75vh] max-w-full rounded-lg shadow-2xl object-contain mx-auto"
-                />
-              )}
+                {/* Link 的確認視窗 */}
+                {activeMedia.type === 'link' && (
+                  <div className="text-center w-full">
+                    <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <LinkIcon className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-800 mb-2">
+                      即將前往外部網站
+                    </h3>
+                    <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                      您確定要離開此頁面嗎？<br />這將會開啟一個新的視窗。
+                    </p>
 
-              {activeMedia.type === 'spotify' && (
-                <div className="w-full bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-                  <iframe
-                    style={{ borderRadius: 12 }}
-                    src={getSpotifyEmbedUrl(activeMedia.data.url)}
-                    width="100%"
-                    height="352"
-                    frameBorder="0"
-                    allowFullScreen
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                    loading="lazy"
-                  ></iframe>
-                </div>
-              )}
+                    {activeMedia.data.description && (
+                      <div className="bg-slate-50 p-4 rounded-xl text-slate-600 text-sm mb-6 border border-slate-100 break-words">
+                        {activeMedia.data.description}
+                      </div>
+                    )}
 
-              {activeMedia.type === 'map' && (
-                <div className="aspect-square md:aspect-video bg-white rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
-                    src={`https://maps.google.com/maps?q=${encodeURIComponent(
-                      activeMedia.data.location
-                    )}&output=embed`}
-                  ></iframe>
-                </div>
-              )}
+                    <div className="flex gap-3 mt-2">
+                      <button
+                        onClick={() => setActiveMedia(null)}
+                        className="flex-1 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition"
+                      >
+                        取消
+                      </button>
+                      <a
+                        href={activeMedia.data.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setActiveMedia(null)}
+                        className="flex-1 py-3 rounded-xl font-bold text-white bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-200 transition flex items-center justify-center gap-2"
+                      >
+                        前往 <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                )}
 
-              {activeMedia.type === 'scratch' && (
-                <div className="bg-white p-4 rounded-3xl shadow-2xl">
-                  <ScratchCard data={activeMedia.data} />
-                  <p className="text-center text-slate-400 text-xs mt-4">
-                    用滑鼠或手指刮開銀漆
-                  </p>
-                </div>
-              )}
+                {activeMedia.type === 'video' && (
+                  <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      src={`https://www.youtube.com/embed/${getYouTubeId(
+                        activeMedia.data.url
+                      )}?autoplay=1&rel=0`}
+                      title="YouTube"
+                      allow="autoplay; encrypted-media"
+                      allowFullScreen
+                      className="absolute inset-0"
+                    />
+                  </div>
+                )}
 
-              {activeMedia.type === 'typewriter' && (
-                <div className="bg-white p-8 rounded-3xl shadow-2xl min-h-[300px]">
-                  <TypewriterCard text={activeMedia.data.text} />
-                </div>
-              )}
+                {activeMedia.type === 'image' && (
+                  <img
+                    src={activeMedia.data.url}
+                    alt="Surprise"
+                    className="w-auto h-auto max-h-[55vh] max-w-full rounded-lg shadow-2xl object-contain mx-auto"
+                  />
+                )}
 
-              {/* 連結類型已在上方獨立處理，這裡只處理其他類型的描述文字 */}
-              {activeMedia.data.description && activeMedia.type !== 'link' && (
-                <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl text-white text-center border border-white/10 shadow-lg mt-4">
-                  <p className="text-sm font-medium leading-relaxed">
-                    {activeMedia.data.description}
-                  </p>
-                </div>
-              )}
+                {activeMedia.type === 'spotify' && (
+                  <div className="w-full bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+                    <iframe
+                      style={{ borderRadius: 12 }}
+                      src={getSpotifyEmbedUrl(activeMedia.data.url)}
+                      width="100%"
+                      height="352"
+                      frameBorder="0"
+                      allowFullScreen
+                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                      loading="lazy"
+                    ></iframe>
+                  </div>
+                )}
+
+                {activeMedia.type === 'map' && (
+                  <div className="aspect-square md:aspect-video bg-white rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                        activeMedia.data.location
+                      )}&output=embed`}
+                    ></iframe>
+                  </div>
+                )}
+
+                {activeMedia.type === 'scratch' && (
+                  <div className="bg-white p-4 rounded-3xl shadow-2xl">
+                    <ScratchCard data={activeMedia.data} />
+                    <p className="text-center text-slate-400 text-xs mt-4">
+                      用滑鼠或手指刮開銀漆
+                    </p>
+                  </div>
+                )}
+
+                {activeMedia.type === 'typewriter' && (
+                  <div className="bg-white p-8 rounded-3xl shadow-2xl min-h-[300px]">
+                    <TypewriterCard text={activeMedia.data.text} />
+                  </div>
+                )}
+
+                {activeMedia.data.description && activeMedia.type !== 'link' && (
+                  <div className="max-h-[20vh] overflow-y-auto bg-white/10 backdrop-blur-md p-4 rounded-xl text-white text-center border border-white/10 shadow-lg mt-4">
+                    <p className="text-sm font-medium leading-relaxed">
+                      {activeMedia.data.description}
+                    </p>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
