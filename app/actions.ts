@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { differenceInDays, parseISO } from 'date-fns';
 
 export async function verifyAccess(slug: string, password: string) {
   const { data } = await supabase.from('calendars').select('access_code').eq('slug', slug).single();
@@ -33,6 +34,20 @@ export async function createCalendar(formData: FormData) {
   const { data: existing } = await supabase.from('calendars').select('slug').eq('slug', slug).single();
   if (existing) return { success: false, message: '這個網址已經有人使用了，請換一個試試！', field: 'slug' };
 
+  // 新增：取得開始與結束日期
+  const startDate = formData.get('startDate') as string || '2025-12-01';
+  const endDate = formData.get('endDate') as string || '2025-12-25';
+
+  // 計算天數 (包含首尾天數)
+  const start = parseISO(startDate);
+  const end = parseISO(endDate);
+  const dayCount = differenceInDays(end, start) + 1;
+
+  // 驗證限制：2 ~ 30 天
+  if (dayCount < 2 || dayCount > 30) {
+    return { success: false, message: `天數必須在 2 到 30 天之間（目前共 ${dayCount} 天）`, field: 'root' };
+  }
+
   const recipientName = formData.get('recipientName') as string;
   const adminCode = formData.get('adminCode') as string;
   const accessCode = formData.get('accessCode') as string || null;
@@ -48,8 +63,15 @@ export async function createCalendar(formData: FormData) {
   const { data: calendar, error } = await supabase
     .from('calendars')
     .insert({
-      slug, recipient_name: recipientName, admin_code: adminCode, access_code: accessCode,
-      theme_color: themeColor, background: background, card_style: cardStyle
+      slug, 
+      recipient_name: recipientName, 
+      admin_code: adminCode, 
+      access_code: accessCode,
+      theme_color: themeColor, 
+      background: background, 
+      card_style: cardStyle,
+      start_date: startDate, // 存入資料庫
+      end_date: endDate      // 存入資料庫
     })
     .select().single();
 
@@ -58,7 +80,8 @@ export async function createCalendar(formData: FormData) {
     return { success: false, message: '建立失敗，請稍後再試', field: 'root' };
   }
 
-  const days = Array.from({ length: 25 }, (_, i) => ({
+  // 動態建立日期格子，不再固定 25 天
+  const days = Array.from({ length: dayCount }, (_, i) => ({
     calendar_id: calendar.id, 
     day_number: i + 1, 
     content_type: 'text', 
@@ -99,11 +122,13 @@ export async function updateCalendarSettings(formData: FormData) {
   const cookieStore = await cookies();
   const isAdmin = cookieStore.get(`admin-${slug}`)?.value === 'granted';
   if (!isAdmin) return { success: false, message: 'Unauthorized' };
+  
   const { error } = await supabase.from('calendars').update({ 
       recipient_name: formData.get('recipientName') as string, 
       theme_color: formData.get('themeColor') as string,
       background: formData.get('background') as string,
-      card_style: formData.get('cardStyle') as string
+      card_style: formData.get('card_style') as string,
+      // 如果設定頁面也有日期修改，可以加在這裡
     }).eq('slug', slug);
   if (error) return { success: false, message: error.message };
   return { success: true };
