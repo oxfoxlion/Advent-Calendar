@@ -16,7 +16,7 @@ export default function NotFound() {
           找不到頁面
         </h2>
         <p className="text-slate-500 mb-8 leading-relaxed text-sm">
-          哎呀！您要找的降臨曆可能不存在，<br />
+          哎呀！您要找的倒數日曆可能不存在，<br />
           或者是網址輸入錯誤囉。
         </p>
 

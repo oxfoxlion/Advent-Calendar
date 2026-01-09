@@ -136,7 +136,7 @@ export default function Home() {
         <form onSubmit={handleSubmit} className="mt-8 space-y-6 bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-white/50 shadow-2xl relative z-20">
           <div className="space-y-6">
             
-            {/* 降臨曆名稱與網址 */}
+            {/* 倒數日曆名稱與網址 */}
             <div className="grid grid-cols-1 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">日曆名稱</label>
