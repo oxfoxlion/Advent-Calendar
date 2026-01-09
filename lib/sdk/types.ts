@@ -6,6 +6,8 @@ export type CalendarProfile = {
   hasPassword: boolean;
   background: string; 
   cardStyle: string;  
+  startDate?: string;
+  endDate?: string;
 };
 
 export type DayContent = {

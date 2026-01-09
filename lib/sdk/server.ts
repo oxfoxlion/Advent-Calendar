@@ -12,30 +12,41 @@ export async function getCalendarProfile(slug: string): Promise<CalendarProfile 
     recipientName: data.recipient_name,
     themeColor: data.theme_color,
     hasPassword: !!data.access_code,
-    // 如果資料庫是空的，給個預設值 classic
     background: data.background || 'classic',
     cardStyle: data.card_style || 'classic',
+    startDate: data.start_date, // 確保型別定義有包含此欄位
+    endDate: data.end_date      // 確保型別定義有包含此欄位
   };
 }
 
 export async function getSafeCalendarDays(calendarId: string, isAdmin: boolean = false): Promise<DayContent[]> {
+  // 1. 先獲取日曆的開始日期資訊
+  const { data: cal } = await supabase
+    .from('calendars')
+    .select('start_date')
+    .eq('id', calendarId)
+    .single();
+
+  // 2. 獲取該日曆所有的內容格子
   const { data: rawDays } = await supabase
     .from('calendar_days')
     .select('*')
     .eq('calendar_id', calendarId)
     .order('day_number', { ascending: true });
 
-  const daysMap = new Map(rawDays?.map(d => [d.day_number, d]));
+  if (!rawDays) return [];
 
-  // 產生 1-25 天
-  return Array.from({ length: 25 }, (_, i) => {
+  const daysMap = new Map(rawDays.map(d => [d.day_number, d]));
+  const totalDays = rawDays.length; // 根據資料庫實際有的格子數量來產生
+
+  // 3. 根據實際格數產生對應的資料
+  return Array.from({ length: totalDays }, (_, i) => {
     const dayNum = i + 1;
     const dayData = daysMap.get(dayNum);
     
-    // 原始的時間檢查
-    const timeUnlockable = isDayUnlockable(dayNum);
+    // 將該日曆的 start_date 傳入判斷邏輯
+    const timeUnlockable = isDayUnlockable(dayNum, cal?.start_date);
     
-    // ★ 關鍵修改：如果是管理員 (isAdmin) 或是時間到了 (timeUnlockable)，都視為「可解鎖」
     const isAccessible = isAdmin || timeUnlockable;
 
     if (isAccessible && dayData) {
@@ -44,11 +55,10 @@ export async function getSafeCalendarDays(calendarId: string, isAdmin: boolean =
         type: dayData.content_type as any,
         title: dayData.title,
         content: dayData.content,
-        isLocked: false, // 因為可存取，所以不鎖住
+        isLocked: false,
       };
     }
     
-    // 沒資料或未解鎖 -> 鎖住並隱藏內容
     return {
       day: dayNum,
       type: 'text',

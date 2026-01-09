@@ -35,11 +35,11 @@ export default function EditPageClient({ profile, days, slug }: Props) {
   const initBgString = profile.background.startsWith('custom-bg:')
     ? profile.background.replace('custom-bg:', '')
     : (THEME_DEFAULTS[profile.background]?.join(',') || THEME_DEFAULTS.classic.join(','));
-  
+
   const parts = initBgString.split(',');
   const initBgStart = parts[0];
   const initBgEnd = parts[1] || parts[0];
-  const initPattern = parts[2] || ''; 
+  const initPattern = parts[2] || '';
   const initQuantity = parts[3] ? parseInt(parts[3]) : 20;
   const initSize = parts[4] ? parseFloat(parts[4]) : 1;
   const initRotation = parts[5] ? parseInt(parts[5]) : 45;
@@ -61,7 +61,7 @@ export default function EditPageClient({ profile, days, slug }: Props) {
 
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
-  
+
   // ★ 新增：控制「今天不再顯示」勾選狀態
   const [dontShowToday, setDontShowToday] = useState(false);
 
@@ -88,26 +88,40 @@ export default function EditPageClient({ profile, days, slug }: Props) {
   const handleAdminSubscribe = () => {
     const eventTitle = `🎁 [準備提醒] 記得包裝 ${profile.recipientName} 的降臨曆禮物！`;
     const details = `親愛的管理者，明天就要開禮物了！\n請記得在今晚 12:00 前完成內容編輯，才不會讓對方看到空白頁面喔。\n\n編輯連結：${window.location.href}`;
-    const startDate = '20251130T220000'; 
-    const endDate = '20251130T221500';
-    const recurrence = 'RRULE:FREQ=DAILY;COUNT=25';
-    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${startDate}/${endDate}&details=${encodeURIComponent(details)}&recur=${encodeURIComponent(recurrence)}`;
-    
+
+    // 1. 取得開始日期的前一天 (因為是提醒「準備」)
+    // 如果 profile.startDate 格式為 YYYY-MM-DD
+    const baseDate = new Date(profile.startDate || '2025-12-01');
+    baseDate.setDate(baseDate.getDate() - 1); // 提早一天提醒
+
+    const year = baseDate.getFullYear();
+    const month = String(baseDate.getMonth() + 1).padStart(2, '0');
+    const day = String(baseDate.getDate()).padStart(2, '0');
+
+    // 2. 設定 Google Calendar 格式的日期時間 (YYYYMMDDTHHMMSS)
+    const formattedDate = `${year}${month}${day}T220000`; // 晚上 10:00 提醒
+    const endDate = `${year}${month}${day}T221500`;
+
+    // 3. 設定循環天數與日曆天數一致
+    const recurrence = `RRULE:FREQ=DAILY;COUNT=${days.length}`;
+
+    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${formattedDate}/${endDate}&details=${encodeURIComponent(details)}&recur=${encodeURIComponent(recurrence)}`;
+
     window.open(calendarUrl, '_blank');
   };
 
   const buttonStyle = "px-4 py-2 bg-white/50 backdrop-blur-sm text-slate-800 hover:bg-white/80 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-sm border border-white/40 cursor-pointer";
 
   return (
-    <div 
+    <div
       className="min-h-screen p-6 pb-32 transition-colors duration-300 relative"
       style={{ background: `linear-gradient(135deg, ${bgStart}, ${bgEnd})` }}
     >
-      <BackgroundDecoration 
-        pattern={pattern} 
-        quantity={quantity} 
-        size={size} 
-        rotation={rotation} 
+      <BackgroundDecoration
+        pattern={pattern}
+        quantity={quantity}
+        size={size}
+        rotation={rotation}
         animation={animation as any}
       />
 
@@ -124,7 +138,7 @@ export default function EditPageClient({ profile, days, slug }: Props) {
           </div>
 
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setShowSecurityModal(true)}
               className={buttonStyle}
             >
@@ -138,9 +152,9 @@ export default function EditPageClient({ profile, days, slug }: Props) {
         </header>
 
         <div className="max-w-5xl mx-auto space-y-8">
-          
-          <AppearanceSettings 
-            slug={slug} 
+
+          <AppearanceSettings
+            slug={slug}
             profile={profile}
             bgStart={bgStart} setBgStart={setBgStart}
             bgEnd={bgEnd} setBgEnd={setBgEnd}
@@ -154,30 +168,27 @@ export default function EditPageClient({ profile, days, slug }: Props) {
 
           <section>
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800 drop-shadow-sm">
-              📅 每日內容 (25天)
+              📅 每日內容 ({days.length}天)
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 25 }).map((_, i) => {
-                const dayNum = i + 1;
-                const currentDayData = days.find(d => d.day === dayNum);
-                return (
-                  <DayEditor 
-                    key={dayNum} 
-                    slug={slug} 
-                    day={dayNum} 
-                    initialData={currentDayData}
-                  />
-                );
-              })}
+              {/* 改為根據傳入的 days 陣列進行渲染 */}
+              {days.map((dayData) => (
+                <DayEditor
+                  key={dayData.day}
+                  slug={slug}
+                  day={dayData.day}
+                  initialData={dayData}
+                />
+              ))}
             </div>
           </section>
         </div>
 
         <footer className="text-center text-xs mt-12 pb-6 opacity-60 text-white flex flex-col items-center gap-2">
           <p>InstantCheese Shao | 2025</p>
-          <a 
-            href="https://www.threads.net/@oxfoxlion" 
-            target="_blank" 
+          <a
+            href="https://www.threads.net/@oxfoxlion"
+            target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 hover:text-white hover:underline transition-all"
           >
@@ -233,7 +244,7 @@ export default function EditPageClient({ profile, days, slug }: Props) {
 
               {/* 訂閱連結 (弱化版) */}
               <div className="flex justify-center pt-1">
-                <button 
+                <button
                   onClick={handleAdminSubscribe}
                   className="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1.5 transition-colors group"
                 >
@@ -245,7 +256,7 @@ export default function EditPageClient({ profile, days, slug }: Props) {
               {/* 按鈕群組 */}
               <div className="space-y-4">
                 {/* 主按鈕：我知道了 */}
-                <button 
+                <button
                   onClick={() => closeReminder(dontShowToday)}
                   className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-bold transition shadow-lg shadow-slate-300 active:scale-[0.98]"
                 >
@@ -254,7 +265,7 @@ export default function EditPageClient({ profile, days, slug }: Props) {
 
                 {/* ★ 修改：改為勾選切換樣式 */}
                 <div className="flex justify-center">
-                  <button 
+                  <button
                     onClick={() => setDontShowToday(!dontShowToday)}
                     className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition group select-none"
                   >
@@ -266,9 +277,9 @@ export default function EditPageClient({ profile, days, slug }: Props) {
                 </div>
               </div>
             </div>
-            
+
             {/* 右上角關閉 (不會觸發儲存設定) */}
-            <button 
+            <button
               onClick={() => closeReminder(false)}
               className="absolute top-4 right-4 p-2 text-slate-300 hover:text-slate-500 transition rounded-full hover:bg-slate-100"
             >

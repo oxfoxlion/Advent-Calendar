@@ -55,16 +55,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   if (!profile) {
     return {
-      title: '2025 降臨曆',
+      title: '倒數日曆',
     };
   }
 
   return {
-    title: `${profile.recipientName} | 2025 降臨曆`,
-    description: ` ${profile.recipientName} 25 天倒數驚喜`,
+    title: `${profile.recipientName} | 倒數日曆`,
+    description: ` ${profile.recipientName} 倒數驚喜`,
     openGraph: {
-      title: `${profile.recipientName} | 2025 降臨曆`,
-      description: '快來看看我為你準備的 25 個禮物！',
+      title: `${profile.recipientName} | 倒數日曆`,
+      description: '快來看看我為你準備的禮物！',
     },
   };
 }
@@ -116,7 +116,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           <h1 className="text-4xl font-extrabold drop-shadow-md mb-2 text-white">
             {profile.recipientName}
           </h1>
-          <p className="text-sm font-medium mb-6 text-white/80 drop-shadow-sm">2025 Advent Calendar</p>
+          <p className="text-sm font-medium mb-6 text-white/80 drop-shadow-sm">倒數日曆</p>
 
           <div className="flex justify-center gap-3 flex-wrap">
             <Link href="/" className={buttonStyle} title="製作我的專屬日曆">
@@ -125,7 +125,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             </Link>
 
             <ShareButton slug={slug} />
-            <ReminderButton title={profile.recipientName} />
+            <ReminderButton profile={profile} days={days} />
             {showLogout && <LogoutButton slug={slug} />}
 
             {isAdmin ? (
